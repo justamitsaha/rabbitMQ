@@ -1,0 +1,22 @@
+order-service/
+└─ src/main/java/com/saha/amit/orderservice
+   ├─ OrderServiceApplication.java
+   ├─ config/
+   │  ├─ R2dbcConfig.java
+   │  └─ RabbitConfig.java
+   ├─ controller/
+   │  └─ OrderController.java
+   ├─ domain/
+   │  ├─ Order.java
+   │  ├─ OrderStatus.java
+   │  └─ OutboxEntry.java
+   ├─ dto/
+   │  └─ PlaceOrderRequest.java
+   ├─ repository/
+   │  ├─ OrderRepository.java
+   │  └─ OutboxRepository.java
+   ├─ service/
+   │  ├─ OrderService.java
+   │  └─ OutboxPublisher.java
+   └─ listener/
+      └─ RabbitListeners.java
