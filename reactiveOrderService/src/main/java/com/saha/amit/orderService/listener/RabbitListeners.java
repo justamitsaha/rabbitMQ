@@ -12,7 +12,7 @@ import reactor.core.Disposable;
 
 
 
-@Component
+//@Component
 @RequiredArgsConstructor
 public class RabbitListeners {
 
