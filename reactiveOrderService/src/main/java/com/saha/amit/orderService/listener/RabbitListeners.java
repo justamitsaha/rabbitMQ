@@ -2,6 +2,7 @@ package com.saha.amit.orderService.listener;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.saha.amit.orderService.dto.Status;
 import com.saha.amit.orderService.service.OrderService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -33,10 +34,10 @@ public class RabbitListeners {
                         String orderId = payload.get("orderId").asText();
                         if ("delivery.completed".equals(delivery.getProperties().getType()) ||
                                 "delivery.completed".equals(delivery.getEnvelope().getRoutingKey())) {
-                            return orderService.updateOrderStatus(orderId, com.saha.amit.orderService.domain.OrderStatus.CLOSED);
+                            return orderService.updateOrderStatus(orderId, Status.COMPLETED);
                         } else if ("payment.failed".equals(delivery.getProperties().getType()) ||
                                 "payment.failed".equals(delivery.getEnvelope().getRoutingKey())) {
-                            return orderService.updateOrderStatus(orderId, com.saha.amit.orderService.domain.OrderStatus.CANCELLED);
+                            return orderService.updateOrderStatus(orderId, Status.FAILED);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

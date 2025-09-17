@@ -1,8 +1,9 @@
 use order_schema;
 
 CREATE TABLE IF NOT EXISTS orders (
-  id VARCHAR(36) PRIMARY KEY,
-  customer_id VARCHAR(255),
+  order_id VARCHAR(36) PRIMARY KEY,
+  customer_ VARCHAR(36),
+  customer_id VARCHAR(50),
   status VARCHAR(50),
   created_at TIMESTAMP
 );

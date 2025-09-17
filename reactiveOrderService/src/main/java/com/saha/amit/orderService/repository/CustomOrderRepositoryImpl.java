@@ -16,10 +16,25 @@ public class CustomOrderRepositoryImpl implements CustomOrderRepository{
 
 
     public Mono<Order> insert(Order order) {
-        return databaseClient.sql("INSERT INTO orders (id, customer_id, status, created_at) VALUES (:id, :customerId, :status, :createdAt)")
-                .bind("id", order.getId())
-                .bind("customerId", order.getCustomerId())
-                .bind("status", order.getStatus())
+        String sql = """
+                INSERT INTO orders
+                (order_id,
+                customer_id,
+                customer_name,
+                status,
+                created_at)
+                VALUES
+                (:order_id,
+                :customer_id,
+                :customer_name,
+                :status,
+                :created_at);
+                """;
+        return databaseClient.sql(sql)
+                .bind("order_id", order.getOrderId())
+                .bind("customer_id", order.getCustomerId())
+                .bind("customer_name", order.getCustomerName())
+                .bind("status", order.getOrderStatus())
                 .bind("createdAt", order.getCreatedAt())
                 .fetch()
                 .rowsUpdated()
