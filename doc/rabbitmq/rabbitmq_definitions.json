@@ -1,6 +1,22 @@
 {
+  "users": [
+    {
+      "name": "admin",
+      "password": "admin",
+      "tags": "administrator"
+    }
+  ],
   "vhosts": [
     { "name": "/" }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
   ],
   "exchanges": [
     { "name": "order.exchange", "vhost": "/", "type": "topic", "durable": true },
@@ -30,7 +46,6 @@
       "durable": true,
       "arguments": { "x-dead-letter-exchange": "delivery.dlx" }
     },
-
     {
       "name": "payment-retry-queue",
       "vhost": "/",
@@ -51,7 +66,6 @@
         "x-dead-letter-routing-key": "delivery.created"
       }
     },
-
     { "name": "order-service-dlq", "vhost": "/", "durable": true },
     { "name": "payment-service-dlq", "vhost": "/", "durable": true },
     { "name": "delivery-service-dlq", "vhost": "/", "durable": true }
