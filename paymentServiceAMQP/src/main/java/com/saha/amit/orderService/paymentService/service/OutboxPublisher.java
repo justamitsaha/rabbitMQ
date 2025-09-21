@@ -25,33 +25,34 @@ public class OutboxPublisher {
 
     @Scheduled(fixedDelay = 2000) // every 2s
     public void publishUnsentEvents() {
+        logger.info("🔄 Checking for unsent outbox events...");
         outboxRepository.findByPublishedFalse()
-                .flatMap(event -> {
+                .flatMap(outboxEvent -> {
                     try {
-                        CorrelationData correlationData = new CorrelationData(String.valueOf(event.getId()));
+                        CorrelationData correlationData = new CorrelationData(String.valueOf(outboxEvent.getAggregateId()));
 
-                        rabbitTemplate.convertAndSend(exchange, event.getEventType(), event.getPayload(), correlationData);
+                        rabbitTemplate.convertAndSend(exchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
 
-                        logger.info("📤 Sent event {} to RabbitMQ, awaiting confirm...", event.getId());
+                        logger.info("📤 Sent outboxEvent {} to RabbitMQ, awaiting confirm...", outboxEvent.getPayload());
 
                         // only mark as published after confirm callback
                         correlationData.getFuture().whenComplete((confirm, ex) -> {
                             if (ex != null) {
-                                logger.error("❌ Publish failed for event {}", event.getId(), ex);
+                                logger.error("❌ Publish failed for outboxEvent {}", outboxEvent.getAggregateId(), ex);
                                 return;
                             }
                             if (confirm.isAck()) {
-                                event.setPublished(true);
-                                outboxRepository.save(event).subscribe();
-                                logger.info("✅ Event {} published successfully", event.getId());
+                                outboxEvent.setPublished(true);
+                                outboxRepository.save(outboxEvent).subscribe();
+                                logger.info("✅ Event {} published successfully", outboxEvent.getAggregateId());
                             } else {
-                                logger.warn("⚠️ Event {} was NACKed by broker: {}", event.getId(), confirm.getReason());
+                                logger.warn("⚠️ Event {} was NACKed by broker: {}", outboxEvent.getAggregateId(), confirm.getReason());
                             }
                         });
 
                         return Mono.empty(); // return empty since confirm callback does DB update
                     } catch (Exception e) {
-                        logger.error("❌ Failed to publish event {}", event.getId(), e);
+                        logger.error("❌ Failed to publish outboxEvent {}", outboxEvent.getAggregateId(), e);
                         return Mono.empty();
                     }
                 })

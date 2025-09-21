@@ -1,4 +1,4 @@
-package com.saha.amit.orderService.dto;
+package com.saha.amit.orderService.paymentService.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class PaymentDto {
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String orderId;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String paymentId;

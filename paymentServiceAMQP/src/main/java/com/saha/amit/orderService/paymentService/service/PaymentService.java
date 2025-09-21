@@ -24,9 +24,8 @@ public class PaymentService {
     public Mono<Payment> createPayment(String orderId) {
         String paymentId = UUID.randomUUID().toString();
         Payment payment = Payment.builder()
-                .id(paymentId)
+                .paymentId(paymentId)
                 .orderId(orderId)
-                .status("INITIATED")
                 .createdAt(Instant.now())
                 .build();
 
@@ -35,7 +34,7 @@ public class PaymentService {
                     try {
                         String payload = objectMapper.writeValueAsString(saved);
                         OutboxEvent event = OutboxEvent.builder()
-                                .aggregateId(saved.getId())
+                                .aggregateId(saved.getPaymentId())
                                 .aggregateType("Payment")
                                 .eventType("payment.created")
                                 .payload(payload)

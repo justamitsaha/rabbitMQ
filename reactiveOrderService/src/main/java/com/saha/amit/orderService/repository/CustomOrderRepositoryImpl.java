@@ -1,12 +1,15 @@
 package com.saha.amit.orderService.repository;
 
 import com.saha.amit.orderService.domain.Order;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
 @Repository
 public class CustomOrderRepositoryImpl implements CustomOrderRepository{
+    Logger logger = LoggerFactory.getLogger(CustomOrderRepositoryImpl.class);
 
     private final DatabaseClient databaseClient;
 
@@ -16,6 +19,7 @@ public class CustomOrderRepositoryImpl implements CustomOrderRepository{
 
 
     public Mono<Order> insert(Order order) {
+        logger.info("Inserting order: {}", order);
         String sql = """
                 INSERT INTO orders
                 (order_id,
@@ -35,7 +39,7 @@ public class CustomOrderRepositoryImpl implements CustomOrderRepository{
                 .bind("customer_id", order.getCustomerId())
                 .bind("customer_name", order.getCustomerName())
                 .bind("status", order.getOrderStatus())
-                .bind("createdAt", order.getCreatedAt())
+                .bind("created_at", order.getCreatedAt())
                 .fetch()
                 .rowsUpdated()
                 .thenReturn(order);

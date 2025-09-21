@@ -11,10 +11,10 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@Table("outbox")
+@Table("outbox_payment")
 public class OutboxEvent {
     @Id
-    private String id;              // primary key for outbox row
+    private String paymentId;              // primary key for outbox row
     private String aggregateId;   // business entity ID (e.g., paymentId, orderId)
     private String aggregateType; // type of entity (Payment, Order, Delivery, etc.)
     private String eventType;     // event name (payment.created, payment.completed, etc.)

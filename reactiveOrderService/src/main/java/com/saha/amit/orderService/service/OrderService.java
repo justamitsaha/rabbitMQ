@@ -25,26 +25,36 @@ public class OrderService {
     private final OrderPublisher orderPublisher;
     private final CustomOrderRepository customOrderRepository;
 
-    public Mono<Order> placeOrder(PlaceOrderRequest req) {
+    public Mono<Order> placeOrder(PlaceOrderRequest placeOrderRequest) {
         String orderId = UUID.randomUUID().toString();
         Order order = Order.builder()
                 .orderId(orderId)
-                .customerId(req.getCustomerId())
-                .customerName(req.getCustomerName())
+                .customerId(placeOrderRequest.getCustomerId())
+                .customerName(placeOrderRequest.getCustomerName())
                 .orderStatus(Status.PENDING)
                 .createdAt(Instant.now())
                 .build();
-        logger.info("Placing order for customer: {}", order);
-        /*return orderPublisher.publishEvent(order)
+        placeOrderRequest.setOrderId(orderId);
+        placeOrderRequest.setOrderStatus(order.getOrderStatus());
+        placeOrderRequest.setCreatedAt(order.getCreatedAt());
+        placeOrderRequest.getPayment().setOrderId(orderId);
+        placeOrderRequest.getDelivery().setOrderId(orderId);
+        logger.info("Order data to be saved in database: {}", order);
+        logger.info("Order request sent to rabbit mq: {}", placeOrderRequest);
+
+        /*
+        RabbitMQ can't be source of truth we should save the transaction in db first then publish to MQ
+        return orderPublisher.publishEvent(order)
                 .filter(published -> published) // proceed only if published is true
                 .flatMap(published -> customOrderRepository.insert(order))
                 .switchIfEmpty(Mono.error(new RuntimeException("Failed to publish order.created event")))
-                .flatMap(Mono::just);*/
+                .flatMap(Mono::just);
+        */
 
 
         return customOrderRepository.insert(order)
                 .flatMap(savedOrder ->
-                        orderPublisher.publishEvent(savedOrder)
+                        orderPublisher.publishEvent(placeOrderRequest)
                                 .flatMap(ack -> {
                                     if (ack) {
                                         return Mono.just(savedOrder);
@@ -55,6 +65,8 @@ public class OrderService {
                                                 .then(Mono.error(new RuntimeException("Failed to publish order.created")));
                                     }
                                 })
+                                .doOnNext(order1 -> logger.info("Order published to message broker: {}", order1))
+                                .doOnError(err -> logger.error("Error publishing order: {}", err.getMessage()))
                 );
     }
 
