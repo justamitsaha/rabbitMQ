@@ -23,9 +23,10 @@ public class OrderController {
 
     @PostMapping
     public Mono<ResponseEntity<Order>> placeOrder(@RequestBody PlaceOrderRequest req) {
+        logger.info("Received order placement request: {}", req);
         return orderService.placeOrder(req)
                 .map(ResponseEntity::ok)
-                .doOnError(ex -> logger.error("Error placing order: {}", ex.getMessage()))
+                .doOnError(ex -> logger.error("Error placing order: {}, correlationID: {}, ", ex.getMessage(), req.getOrderId()))
                 .onErrorResume(ex -> {
                     return Mono.just(
                             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

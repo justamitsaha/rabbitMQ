@@ -31,7 +31,7 @@ public class RabbitMessageListener {
     private final CustomRepository customRepository;
 
 
-    @RabbitListener(queues = "${app.rabbit.orderQueue}", containerFactory = "manualAckContainerFactory")
+    @RabbitListener(queues = "${app.rabbit.paymentQueue}", containerFactory = "manualAckContainerFactory")
     public void handleOrderCreated(Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
@@ -57,31 +57,31 @@ public class RabbitMessageListener {
     }
 
 
-    @RabbitListener(queues = "${app.rabbit.paymentQueue}", containerFactory = "manualAckContainerFactory")
-    public void handlePaymentCreated(Message message, Channel channel) throws IOException {
-        long deliveryTag = message.getMessageProperties().getDeliveryTag();
-        try {
-            // 1. Deserialize order
-            Payment payment = objectMapper.readValue(message.getBody(), Payment.class);
-            logger.info("Deserialized Payment: {}", payment);
-
-            // 2. Process payment logic here (e.g., call payment gateway)
-            // Simulate processing delay
-            Thread.sleep(1000);
-            logger.info("Processed payment for paymentId={}", payment.getPaymentId());
-
-            // 3. Ack only after success this tells RabbitMQ we have processed this message
-            //If we comment this line message will be read again after consumer restart
-            // We will need to restart the consumer application to see the message being processed again
-            channel.basicAck(deliveryTag, false);
-            logger.info("✅ Acknowledged message for paymentId={}", payment.getPaymentId());
-
-        } catch (Exception e) {
-            logger.error("❌ Failed processing message: {}", e.getMessage(), e);
-            // nack (false = single message, true = requeue)
-            channel.basicNack(deliveryTag, false, false); // send to DLQ
-        }
-    }
+//    @RabbitListener(queues = "${app.rabbit.paymentQueue}", containerFactory = "manualAckContainerFactory")
+//    public void handlePaymentCreated(Message message, Channel channel) throws IOException {
+//        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+//        try {
+//            // 1. Deserialize order
+//            Payment payment = objectMapper.readValue(message.getBody(), Payment.class);
+//            logger.info("Deserialized Payment: {}", payment);
+//
+//            // 2. Process payment logic here (e.g., call payment gateway)
+//            // Simulate processing delay
+//            Thread.sleep(1000);
+//            logger.info("Processed payment for paymentId={}", payment.getPaymentId());
+//
+//            // 3. Ack only after success this tells RabbitMQ we have processed this message
+//            //If we comment this line message will be read again after consumer restart
+//            // We will need to restart the consumer application to see the message being processed again
+//            channel.basicAck(deliveryTag, false);
+//            logger.info("✅ Acknowledged message for paymentId={}", payment.getPaymentId());
+//
+//        } catch (Exception e) {
+//            logger.error("❌ Failed processing message: {}", e.getMessage(), e);
+//            // nack (false = single message, true = requeue)
+//            channel.basicNack(deliveryTag, false, false); // send to DLQ
+//        }
+//    }
 
     @Transactional
     public void processOrder(PaymentDto paymentDto) {

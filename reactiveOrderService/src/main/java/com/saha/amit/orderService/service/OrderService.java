@@ -9,6 +9,8 @@ import com.saha.amit.orderService.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,8 +27,15 @@ public class OrderService {
     private final OrderPublisher orderPublisher;
     private final CustomOrderRepository customOrderRepository;
 
+    @Value("${app.rabbit.exchange}")
+    private String exchange;
+
+    @Value("${app.rabbit.routingKey}")
+    private String placeOrderRoutingKey;
+
     public Mono<Order> placeOrder(PlaceOrderRequest placeOrderRequest) {
         String orderId = UUID.randomUUID().toString();
+        MDC.put("correlationId", orderId);
         Order order = Order.builder()
                 .orderId(orderId)
                 .customerId(placeOrderRequest.getCustomerId())
@@ -54,7 +63,7 @@ public class OrderService {
 
         return customOrderRepository.insert(order)
                 .flatMap(savedOrder ->
-                        orderPublisher.publishEvent(placeOrderRequest)
+                        orderPublisher.publishEvent(exchange, placeOrderRoutingKey, placeOrderRequest, orderId)
                                 .flatMap(ack -> {
                                     if (ack) {
                                         return Mono.just(savedOrder);

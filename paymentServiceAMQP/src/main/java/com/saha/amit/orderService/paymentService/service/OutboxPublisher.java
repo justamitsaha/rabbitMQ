@@ -20,8 +20,8 @@ public class OutboxPublisher {
     private final RabbitTemplate rabbitTemplate;
     private static final Logger logger = LoggerFactory.getLogger(OutboxPublisher.class);
 
-    @Value("${app.rabbit.paymentExchange}")
-    private String exchange;
+    @Value("${app.rabbit.orderExchange}")
+    private String orderExchange;
 
     @Scheduled(fixedDelay = 2000) // every 2s
     public void publishUnsentEvents() {
@@ -31,7 +31,7 @@ public class OutboxPublisher {
                     try {
                         CorrelationData correlationData = new CorrelationData(String.valueOf(outboxEvent.getAggregateId()));
 
-                        rabbitTemplate.convertAndSend(exchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
+                        rabbitTemplate.convertAndSend(orderExchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
 
                         logger.info("📤 Sent outboxEvent {} to RabbitMQ, awaiting confirm...", outboxEvent.getPayload());
 

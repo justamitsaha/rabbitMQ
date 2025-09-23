@@ -2,15 +2,19 @@ package com.saha.amit.orderService.messaging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.rabbitmq.OutboundMessage;
 import reactor.rabbitmq.OutboundMessageResult;
 import reactor.rabbitmq.Sender;
+
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -19,26 +23,30 @@ public class OrderPublisher {
     private final Sender sender;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.rabbit.exchange}")
-    private String exchange;
-
-    @Value("${app.rabbit.routingKey}")
-    private String defaultRoutingKey;
 
     Logger logger = LoggerFactory.getLogger(OrderPublisher.class);
 
-    public <T> Mono<Boolean> publishEvent(String routingKey, T payload) {
+    public <T> Mono<Boolean> publishEvent(String exchange, String routingKey, T payload, String correlationId) {
+        MDC.put("correlationId", correlationId);
+        logger.info("Publishing data to exchange: {}, routingKey: {}, payload: {}", exchange, routingKey, payload);
         try {
             byte[] body = objectMapper.writeValueAsBytes(payload);
-            OutboundMessage msg = new OutboundMessage(exchange, routingKey, body);
+
+            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                    .headers(Map.of("X-Correlation-ID", correlationId))
+                    .build();
+
+            OutboundMessage msg = new OutboundMessage(exchange, routingKey, props, body);
+
 
             return sender.sendWithPublishConfirms(Mono.just(msg))
                     .next()
                     .doOnNext(confirm -> {
+                        MDC.put("correlationId", correlationId);
                         if (confirm.isAck()) {
-                            logger.info("✅ Broker ACK for : {} event to exchange : {}", routingKey, exchange);
+                            logger.info("✅ Broker ACK for data send to exchange: {} with routing key : {}", exchange, routingKey);
                         } else {
-                            logger.info("❌ Broker NACK for : {} event: returned=: {}", routingKey, confirm.isReturned());
+                            logger.info("❌ Broker NACK for data send to exchange: {} with routing key : {} and returned=: {}", exchange, routingKey, confirm.isReturned());
                         }
                     })
                     .map(OutboundMessageResult::isAck); // complete when confirms processed
@@ -57,7 +65,4 @@ public class OrderPublisher {
         }
     }
 
-    public <T> Mono<Boolean> publishEvent(T payload) {
-        return publishEvent(defaultRoutingKey, payload);
-    }
 }

@@ -19,72 +19,39 @@
     }
   ],
   "exchanges": [
-    { "name": "order.exchange", "vhost": "/", "type": "topic", "durable": true },
-    { "name": "payment.exchange", "vhost": "/", "type": "topic", "durable": true },
-    { "name": "delivery.exchange", "vhost": "/", "type": "topic", "durable": true },
-
-    { "name": "order.dlx", "vhost": "/", "type": "fanout", "durable": true },
-    { "name": "payment.dlx", "vhost": "/", "type": "fanout", "durable": true },
-    { "name": "delivery.dlx", "vhost": "/", "type": "fanout", "durable": true }
+    { "name": "domain.events", "vhost": "/", "type": "topic", "durable": true},
+    {"name": "domain.dlx", "vhost": "/", "type": "fanout", "durable": true}
   ],
   "queues": [
-    {
-      "name": "order-service-queue",
-      "vhost": "/",
-      "durable": true,
-      "arguments": { "x-dead-letter-exchange": "order.dlx" }
-    },
-    {
-      "name": "payment-service-queue",
-      "vhost": "/",
-      "durable": true,
-      "arguments": { "x-dead-letter-exchange": "payment.dlx" }
-    },
-    {
-      "name": "delivery-service-queue",
-      "vhost": "/",
-      "durable": true,
-      "arguments": { "x-dead-letter-exchange": "delivery.dlx" }
-    },
-    {
-      "name": "payment-retry-queue",
-      "vhost": "/",
-      "durable": true,
-      "arguments": {
-        "x-dead-letter-exchange": "payment.exchange",
-        "x-message-ttl": 300000,
-        "x-dead-letter-routing-key": "payment.created"
-      }
-    },
-    {
-      "name": "delivery-retry-queue",
-      "vhost": "/",
-      "durable": true,
-      "arguments": {
-        "x-dead-letter-exchange": "delivery.exchange",
-        "x-message-ttl": 300000,
-        "x-dead-letter-routing-key": "delivery.created"
-      }
-    },
+    { "name": "order-service-queue", "vhost": "/", "durable": true, "arguments": { "x-dead-letter-exchange": "domain.dlx" }},
+    { "name": "payment-service-queue", "vhost": "/", "durable": true, "arguments": { "x-dead-letter-exchange": "domain.dlx" }},
+    { "name": "delivery-service-queue", "vhost": "/", "durable": true, "arguments": { "x-dead-letter-exchange": "domain.dlx" }},
+    { "name": "notification-service-queue", "vhost": "/", "durable": true, "arguments": { "x-dead-letter-exchange": "domain.dlx" }},
     { "name": "order-service-dlq", "vhost": "/", "durable": true },
     { "name": "payment-service-dlq", "vhost": "/", "durable": true },
-    { "name": "delivery-service-dlq", "vhost": "/", "durable": true }
+    { "name": "delivery-service-dlq", "vhost": "/", "durable": true },
+    { "name": "notification-service-dlq", "vhost": "/", "durable": true }
   ],
   "bindings": [
-    { "source": "order.exchange", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "order.created" },
 
-    { "source": "payment.exchange", "vhost": "/", "destination": "delivery-service-queue", "destination_type": "queue", "routing_key": "payment.completed" },
+    { "source": "domain.events", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "payment.failure" },
+    { "source": "domain.events", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.success" },
+    { "source": "domain.events", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.failure" },
 
-    { "source": "delivery.exchange", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.completed" },
 
-    { "source": "payment.exchange", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "payment.failed" },
-    { "source": "delivery.exchange", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.failed" },
+    { "source": "domain.events", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "order.created" },
+    { "source": "domain.events", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "delivery.failure" },
 
-    { "source": "payment.exchange", "vhost": "/", "destination": "payment-retry-queue", "destination_type": "queue", "routing_key": "payment.failed" },
-    { "source": "delivery.exchange", "vhost": "/", "destination": "delivery-retry-queue", "destination_type": "queue", "routing_key": "delivery.failed" },
 
-    { "source": "order.dlx", "vhost": "/", "destination": "order-service-dlq", "destination_type": "queue" },
-    { "source": "payment.dlx", "vhost": "/", "destination": "payment-service-dlq", "destination_type": "queue" },
-    { "source": "delivery.dlx", "vhost": "/", "destination": "delivery-service-dlq", "destination_type": "queue" }
+    { "source": "domain.events", "vhost": "/", "destination": "delivery-service-queue", "destination_type": "queue", "routing_key": "payment.success" },
+
+
+    { "source": "domain.events", "vhost": "/", "destination": "notification-service-queue", "destination_type": "queue", "routing_key": "#" },
+
+
+    { "source": "domain.dlx", "vhost": "/", "destination": "order-service-dlq", "destination_type": "queue" },
+    { "source": "domain.dlx", "vhost": "/", "destination": "payment-service-dlq", "destination_type": "queue" },
+    { "source": "domain.dlx", "vhost": "/", "destination": "delivery-service-dlq", "destination_type": "queue" },
+    { "source": "domain.dlx", "vhost": "/", "destination": "notification-service-dlq", "destination_type": "queue" }
   ]
 }
