@@ -89,7 +89,7 @@ public class RabbitMessageListener {
         Payment payment = Payment.builder()
                 .paymentId(UUID.randomUUID().toString())
                 .orderId(paymentDto.getOrderId())
-                .paymentStatus(Status.PENDING)
+                .paymentStatus(Status.IN_PROGRESS)
                 .amount(paymentDto.getAmount())
                 .paymentType(paymentDto.getPaymentType())
                 .cardNo(paymentDto.getCardNo())

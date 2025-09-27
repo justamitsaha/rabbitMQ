@@ -25,7 +25,7 @@ public class CustomOrderRepositoryImpl implements CustomOrderRepository{
                 (order_id,
                 customer_id,
                 customer_name,
-                status,
+                order_status,
                 created_at)
                 VALUES
                 (:order_id,

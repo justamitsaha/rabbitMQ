@@ -20,18 +20,19 @@ public class OutboxPublisher {
     private final RabbitTemplate rabbitTemplate;
     private static final Logger logger = LoggerFactory.getLogger(OutboxPublisher.class);
 
-    @Value("${app.rabbit.orderExchange}")
-    private String orderExchange;
+    @Value("${app.rabbit.exchange}")
+    private String exchange;
 
     @Scheduled(fixedDelay = 2000) // every 2s
     public void publishUnsentEvents() {
-        logger.info("🔄 Checking for unsent outbox events...");
         outboxRepository.findByPublishedFalse()
                 .flatMap(outboxEvent -> {
                     try {
                         CorrelationData correlationData = new CorrelationData(String.valueOf(outboxEvent.getAggregateId()));
 
-                        rabbitTemplate.convertAndSend(orderExchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
+                        logger.info("📦 Publishing outboxEvent {} to RabbitMQ to exchange: {}, routing key: {}, with correlationId:{}",
+                                outboxEvent.getPayload(), exchange, outboxEvent.getEventType(), correlationData.getId());
+                        rabbitTemplate.convertAndSend(exchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
 
                         logger.info("📤 Sent outboxEvent {} to RabbitMQ, awaiting confirm...", outboxEvent.getPayload());
 

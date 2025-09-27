@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS orders (
   order_id VARCHAR(36) PRIMARY KEY,
   customer_name VARCHAR(36),
   customer_id VARCHAR(50),
-  status VARCHAR(50),
+  order_status VARCHAR(50),
   created_at TIMESTAMP
 );
 

@@ -38,7 +38,7 @@
     { "source": "domain.events", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.success" },
     { "source": "domain.events", "vhost": "/", "destination": "order-service-queue", "destination_type": "queue", "routing_key": "delivery.failure" },
 
-
+    { "source": "domain.events", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "payment.created"},
     { "source": "domain.events", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "order.created" },
     { "source": "domain.events", "vhost": "/", "destination": "payment-service-queue", "destination_type": "queue", "routing_key": "delivery.failure" },
 

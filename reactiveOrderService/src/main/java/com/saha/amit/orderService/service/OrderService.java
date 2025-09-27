@@ -40,7 +40,7 @@ public class OrderService {
                 .orderId(orderId)
                 .customerId(placeOrderRequest.getCustomerId())
                 .customerName(placeOrderRequest.getCustomerName())
-                .orderStatus(Status.PENDING)
+                .orderStatus(Status.IN_PROGRESS)
                 .createdAt(Instant.now())
                 .build();
         placeOrderRequest.setOrderId(orderId);
@@ -48,8 +48,8 @@ public class OrderService {
         placeOrderRequest.setCreatedAt(order.getCreatedAt());
         placeOrderRequest.getPayment().setOrderId(orderId);
         placeOrderRequest.getDelivery().setOrderId(orderId);
-        logger.info("Order data to be saved in database: {}", order);
-        logger.info("Order request sent to rabbit mq: {}", placeOrderRequest);
+        logger.info("Preparing Order data to be saved in database: {}", order);
+        logger.info("Order request before getting sent to rabbit mq: {}", placeOrderRequest);
 
         /*
         RabbitMQ can't be source of truth we should save the transaction in db first then publish to MQ
@@ -69,13 +69,19 @@ public class OrderService {
                                         return Mono.just(savedOrder);
                                     } else {
                                         // mark order as publish_failed for retry
-                                        savedOrder.setOrderStatus(Status.REJECTED);
+                                        savedOrder.setOrderStatus(Status.FAILED);
                                         return orderRepository.save(savedOrder)
                                                 .then(Mono.error(new RuntimeException("Failed to publish order.created")));
                                     }
                                 })
-                                .doOnNext(order1 -> logger.info("Order published to message broker: {}", order1))
-                                .doOnError(err -> logger.error("Error publishing order: {}", err.getMessage()))
+                                .doOnNext(order1 -> logger.info("Order published to message broker: {}, with roting key: {}, and data: {}",exchange, placeOrderRoutingKey, order1))
+                                .doOnError(err ->
+                                        {
+                                            logger.error("Error publishing order: {} error details: {}", orderId, err.getMessage());
+                                            updateOrderStatus(orderId, Status.FAILED)
+                                                    .subscribe();
+                                        }
+                                )
                 );
     }
 
@@ -88,6 +94,7 @@ public class OrderService {
         return orderRepository.findById(orderId)
                 .flatMap(o -> {
                     o.setOrderStatus(status);
+                    logger.info("Updating order status to {} for order{}", status, o);
                     return orderRepository.save(o);
                 });
     }
