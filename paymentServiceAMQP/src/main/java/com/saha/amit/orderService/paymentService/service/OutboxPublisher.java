@@ -1,5 +1,6 @@
 package com.saha.amit.orderService.paymentService.service;
 
+import com.saha.amit.orderService.paymentService.messaging.PaymentPublisher;
 import com.saha.amit.orderService.paymentService.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,47 +18,36 @@ import reactor.core.publisher.Mono;
 public class OutboxPublisher {
 
     private final OutboxRepository outboxRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final PaymentPublisher paymentPublisher;
     private static final Logger logger = LoggerFactory.getLogger(OutboxPublisher.class);
 
     @Value("${app.rabbit.exchange}")
     private String exchange;
 
+
     @Scheduled(fixedDelay = 2000) // every 2s
-    public void publishUnsentEvents() {
+    public void publishUnsentOutBoxEvents() {
         outboxRepository.findByPublishedFalse()
-                .flatMap(outboxEvent -> {
-                    try {
-                        CorrelationData correlationData = new CorrelationData(String.valueOf(outboxEvent.getAggregateId()));
-
-                        logger.info("📦 Publishing outboxEvent {} to RabbitMQ to exchange: {}, routing key: {}, with correlationId:{}",
-                                outboxEvent.getPayload(), exchange, outboxEvent.getEventType(), correlationData.getId());
-                        rabbitTemplate.convertAndSend(exchange, outboxEvent.getEventType(), outboxEvent.getPayload(), correlationData);
-
-                        logger.info("📤 Sent outboxEvent {} to RabbitMQ, awaiting confirm...", outboxEvent.getPayload());
-
-                        // only mark as published after confirm callback
-                        correlationData.getFuture().whenComplete((confirm, ex) -> {
-                            if (ex != null) {
-                                logger.error("❌ Publish failed for outboxEvent {}", outboxEvent.getAggregateId(), ex);
-                                return;
-                            }
-                            if (confirm.isAck()) {
-                                outboxEvent.setPublished(true);
-                                outboxRepository.save(outboxEvent).subscribe();
-                                logger.info("✅ Event {} published successfully", outboxEvent.getAggregateId());
-                            } else {
-                                logger.warn("⚠️ Event {} was NACKed by broker: {}", outboxEvent.getAggregateId(), confirm.getReason());
-                            }
-                        });
-
-                        return Mono.empty(); // return empty since confirm callback does DB update
-                    } catch (Exception e) {
-                        logger.error("❌ Failed to publish outboxEvent {}", outboxEvent.getAggregateId(), e);
-                        return Mono.empty();
-                    }
-                })
+                .flatMap(outboxEvent ->
+                        paymentPublisher.publishEvent(exchange, "payment.created", outboxEvent.getPayload(), outboxEvent.getAggregateId())
+                                .flatMap(confirm -> {
+                                    if (confirm.isAck()) {
+                                        outboxEvent.setPublished(true);
+                                        return outboxRepository.save(outboxEvent)
+                                                .doOnSuccess(saved -> logger.info("✅Outbox Event {} published successfully", outboxEvent.getPayload()))
+                                                .doOnError(throwable -> logger.error("❌ Failed to mark outbox event {} as published", outboxEvent, throwable));
+                                    } else {
+                                        logger.warn("⚠️ Event {} was NACKed by broker, will retry later", outboxEvent.getAggregateId());
+                                        return Mono.empty();
+                                    }
+                                })
+                )
+                .onErrorContinue((ex, obj) ->
+                        logger.error("❌ Failed to process outbox event {}", obj, ex)
+                )
                 .subscribe();
     }
+
+
 }
 

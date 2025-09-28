@@ -40,17 +40,22 @@ public class CustomRepositoryImpl implements CustomRepository {
              :published);
             """;
 
-        return databaseClient.sql(sql)
-                .bind("payment_id", outboxEvent.getPaymentId())
-                .bind("aggregate_id", outboxEvent.getAggregateId())
-                .bind("aggregate_type", outboxEvent.getAggregateType())
-                .bind("event_type", outboxEvent.getEventType())
-                .bind("payload", outboxEvent.getPayload())
-                .bind("created_at", outboxEvent.getCreatedAt())
-                .bind("published", outboxEvent.getPublished())
-                .fetch()
-                .rowsUpdated()
-                .thenReturn(outboxEvent);
+        try {
+            return databaseClient.sql(sql)
+                    .bind("payment_id", outboxEvent.getPaymentId())
+                    .bind("aggregate_id", outboxEvent.getAggregateId())
+                    .bind("aggregate_type", outboxEvent.getAggregateType())
+                    .bind("event_type", outboxEvent.getEventType())
+                    .bind("payload", outboxEvent.getPayload())
+                    .bind("created_at", outboxEvent.getCreatedAt())
+                    .bind("published", outboxEvent.getPublished())
+                    .fetch()
+                    .rowsUpdated()
+                    .thenReturn(outboxEvent);
+        } catch (Exception e) {
+            logger.error("Error inserting outbox event: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -80,19 +85,24 @@ public class CustomRepositoryImpl implements CustomRepository {
                  :created_at);
                 """;
 
-        return databaseClient.sql(sql)
-                .bind("payment_id", payment.getPaymentId())
-                .bind("order_id", payment.getOrderId())
-                .bind("payment_status", payment.getPaymentStatus()) // Enum → String
-                .bind("amount", payment.getAmount())
-                .bind("payment_type", payment.getPaymentType())     // Enum → String
-                .bind("card_no", payment.getCardNo())
-                .bind("account_no", payment.getAccountNo())
-                .bind("upi_id", payment.getUpiId())
-                .bind("created_at", payment.getCreatedAt())
-                .fetch()
-                .rowsUpdated()
-                .thenReturn(payment);
+        try {
+            return databaseClient.sql(sql)
+                    .bind("payment_id", payment.getPaymentId())
+                    .bind("order_id", payment.getOrderId())
+                    .bind("payment_status", payment.getPaymentStatus()) // Enum → String
+                    .bind("amount", payment.getAmount())
+                    .bind("payment_type", payment.getPaymentType())     // Enum → String
+                    .bind("card_no", payment.getCardNo())
+                    .bind("account_no", payment.getAccountNo())
+                    .bind("upi_id", payment.getUpiId())
+                    .bind("created_at", payment.getCreatedAt())
+                    .fetch()
+                    .rowsUpdated()
+                    .thenReturn(payment);
+        } catch (Exception e) {
+            logger.error("Error inserting payment: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
 
