@@ -34,5 +34,8 @@ This document outlines coding, commenting, and documentation style preferences t
 
 ## 🛠 Project Workspace Organization
 
-*   **Doc Directory**: Keep the root of the project clean. Store all flow diagrams, architecture guides, logical documentation, and comparison sheets inside a dedicated `doc/` subdirectory.
+*   **Doc Directory & README**: 
+    *   For related multi-module projects, document the common flow and the operational runbook/guide for the overall project in the main root `README.md`.
+    *   Store specific module-related details inside a `.md` file in that module's directory (e.g., detailed Outbox pattern documentation inside `paymentServiceAMQP/`), with only a single line referencing it in the root `README.md`.
+    *   Reserve the `doc/` subdirectory for general tech discussions, general technical comparisons, or other patterns that are important but not necessarily implemented.
 *   **Centralized Infrastructure Control**: Group infrastructure setup configurations (e.g., Compose files, topic/resource initialization scripts) in a single root-level `doc/` or `infrastructure/` directory rather than duplicating them inside individual service directories.
