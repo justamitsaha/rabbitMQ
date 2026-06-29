@@ -21,6 +21,9 @@ public class OrderController {
     private final OrderService orderService;
     Logger logger = LoggerFactory.getLogger(OrderController.class);
 
+    /**
+     * REST endpoint to place a new order. Persists the order locally and triggers payment processing.
+     */
     @PostMapping
     public Mono<ResponseEntity<Order>> placeOrder(@RequestBody PlaceOrderRequest req) {
         logger.info("Received order placement request: {}", req);
@@ -30,12 +33,15 @@ public class OrderController {
                 .onErrorResume(ex -> {
                     return Mono.just(
                             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                    .body(null) // or send an error DTO
+                                     .body(null) // or send an error DTO
                     );
                 });
     }
 
 
+    /**
+     * REST endpoint to retrieve a streaming SSE (Server-Sent Events) feed of all placed orders.
+     */
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Order> findAllOrders() {
         return this.orderService.findAllOrders();

@@ -33,6 +33,10 @@ public class OrderService {
     @Value("${app.rabbit.routingKey}")
     private String placeOrderRoutingKey;
 
+    /**
+     * Initiates the order placement flow by persisting the order in status IN_PROGRESS 
+     * and publishing the corresponding order.created event to RabbitMQ.
+     */
     public Mono<Order> placeOrder(PlaceOrderRequest placeOrderRequest) {
         String orderId = UUID.randomUUID().toString();
         MDC.put("correlationId", orderId);
@@ -85,11 +89,17 @@ public class OrderService {
                 );
     }
 
+    /**
+     * Retrieves all orders persisted in the database.
+     */
     public Flux<Order> findAllOrders() {
         return orderRepository.findAll();
     }
 
 
+    /**
+     * Updates the status of an order in the database by its order ID.
+     */
     public Mono<Order> updateOrderStatus(String orderId, Status status) {
         return orderRepository.findById(orderId)
                 .flatMap(o -> {

@@ -14,10 +14,10 @@
     <artifactId>deliveryMessageService</artifactId>
 
     <properties>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>24</java.version>
+        <java.version>17</java.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <reactor.rabbitmq.version>1.5.6</reactor.rabbitmq.version>
         <springdoc.version>2.6.0</springdoc.version>

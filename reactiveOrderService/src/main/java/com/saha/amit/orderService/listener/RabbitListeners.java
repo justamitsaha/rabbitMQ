@@ -22,6 +22,10 @@ public class RabbitListeners {
     private final OrderService orderService;
     private Disposable subscription;
 
+    /**
+     * Initializes the queue consumer subscription on startup to listen and react 
+     * to downstream payment and delivery events.
+     */
     @PostConstruct
     public void start() {
         // Listen to the order-service-queue
@@ -45,8 +49,11 @@ public class RabbitListeners {
                     return reactor.core.publisher.Mono.empty();
                 })
                 .subscribe();
-    }
+     }
 
+    /**
+     * Disposes of the active RabbitMQ event subscription when the bean is destroyed.
+     */
     @PreDestroy
     public void stop() {
         if (subscription != null && !subscription.isDisposed()) subscription.dispose();
