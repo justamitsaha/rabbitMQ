@@ -32,8 +32,6 @@ public class PaymentPublisher {
 
             rabbitTemplate.convertAndSend(exchange, routingKey, payload, correlationData);
 
-            logger.info("📤 Sent data {} to RabbitMQ, awaiting confirm...", payload);
-
             return Mono.fromFuture(correlationData.getFuture())
                     .doOnError(ex -> logger.error("❌ Publish failed for outboxEvent {}", correlationId, ex))
                     .doOnNext(confirm -> {

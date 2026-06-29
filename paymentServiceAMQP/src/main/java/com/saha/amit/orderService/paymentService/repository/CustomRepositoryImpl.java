@@ -20,7 +20,7 @@ public class CustomRepositoryImpl implements CustomRepository {
 
     @Override
     public Mono<OutboxEvent> insertToOutbox(OutboxEvent outboxEvent) {
-        logger.info("Inserting outbox event: {}", outboxEvent);
+        logger.info("Inserting outbox event: {}", outboxEvent.getPaymentId());
         String sql = """
             INSERT INTO outbox_payment
             (payment_id,
@@ -61,7 +61,7 @@ public class CustomRepositoryImpl implements CustomRepository {
 
     @Override
     public Mono<Payment> insertToPayment(Payment payment) {
-        logger.info("Inserting payment: {}", payment);
+        logger.info("Inserting payment: {}", payment.getPaymentId());
         String sql = """
                 INSERT INTO payments
                 (payment_id,

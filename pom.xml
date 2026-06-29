@@ -11,6 +11,8 @@
     <modules>
         <module>reactiveOrderService</module>
         <module>paymentServiceAMQP</module>
+        <module>deliveryMessageService</module>
+        <module>deliveryMessageService</module>
     </modules>
 
     <properties>
