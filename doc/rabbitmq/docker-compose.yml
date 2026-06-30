@@ -1,5 +1,5 @@
 version: "3.8"
-
+name: rabbitmq-saga
 services:
   rabbitmq:
     image: rabbitmq:3.12-management
@@ -24,6 +24,14 @@ services:
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - mysql_data:/var/lib/mysql
+
+  ui:
+    image: justamitsaha/rabbitmq_saga:latest
+    container_name: saga-ui
+    ports:
+      - "8085:80"
+    environment:
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:8080}
 
 volumes:
   mysql_data:

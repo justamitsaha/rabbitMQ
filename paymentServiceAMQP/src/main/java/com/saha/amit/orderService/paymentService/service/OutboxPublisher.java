@@ -21,7 +21,7 @@ public class OutboxPublisher {
     private final PaymentPublisher paymentPublisher;
     private static final Logger logger = LoggerFactory.getLogger(OutboxPublisher.class);
 
-    @Value("${app.rabbit.exchange}")
+    @Value("${app.rabbit.exchange:domain.events}")
     private String exchange;
 
 

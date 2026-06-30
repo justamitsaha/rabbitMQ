@@ -7,6 +7,8 @@ import com.saha.amit.orderService.service.OrderService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.rabbitmq.Receiver;
 import reactor.core.Disposable;
@@ -17,6 +19,7 @@ import reactor.core.Disposable;
 @RequiredArgsConstructor
 public class RabbitListeners {
 
+    private static final Logger logger = LoggerFactory.getLogger(RabbitListeners.class);
     private final Receiver receiver;
     private final ObjectMapper objectMapper;
     private final OrderService orderService;
@@ -44,8 +47,9 @@ public class RabbitListeners {
                             return orderService.updateOrderStatus(orderId, Status.FAILED);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.error("Error processing delivery: {}", e.getMessage(), e);
                     }
+
                     return reactor.core.publisher.Mono.empty();
                 })
                 .subscribe();

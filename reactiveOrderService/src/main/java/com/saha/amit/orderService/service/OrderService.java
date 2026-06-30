@@ -6,6 +6,8 @@ import com.saha.amit.orderService.dto.Status;
 import com.saha.amit.orderService.messaging.OrderPublisher;
 import com.saha.amit.orderService.repository.CustomOrderRepository;
 import com.saha.amit.orderService.repository.OrderRepository;
+import com.saha.amit.orderService.dto.PaymentDto;
+import com.saha.amit.orderService.util.CryptoUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +29,14 @@ public class OrderService {
     private final OrderPublisher orderPublisher;
     private final CustomOrderRepository customOrderRepository;
 
-    @Value("${app.rabbit.exchange}")
+    @Value("${app.rabbit.exchange:domain.events}")
     private String exchange;
 
-    @Value("${app.rabbit.routingKey}")
+    @Value("${app.rabbit.routingKey:order.created}")
     private String placeOrderRoutingKey;
+
+    @Value("${app.security.crypto-key}")
+    private String cryptoKey;
 
     /**
      * Initiates the order placement flow by persisting the order in status IN_PROGRESS 
@@ -52,6 +57,15 @@ public class OrderService {
         placeOrderRequest.setCreatedAt(order.getCreatedAt());
         placeOrderRequest.getPayment().setOrderId(orderId);
         placeOrderRequest.getDelivery().setOrderId(orderId);
+
+        // Encrypt sensitive payment credentials before broadcasting on event bus
+        PaymentDto payment = placeOrderRequest.getPayment();
+        if (payment != null) {
+            payment.setCardNo(CryptoUtil.encrypt(payment.getCardNo(), cryptoKey));
+            payment.setAccountNo(CryptoUtil.encrypt(payment.getAccountNo(), cryptoKey));
+            payment.setUpiId(CryptoUtil.encrypt(payment.getUpiId(), cryptoKey));
+        }
+
         logger.info("Preparing Order data to be saved in database: {}", order);
         logger.info("Order request before getting sent to rabbit mq: {}", placeOrderRequest);
 

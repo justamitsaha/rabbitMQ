@@ -43,18 +43,28 @@ public class CustomDeliveryRepositoryImpl implements CustomDeliveryRepository {
                  :created_at);
                 """;
 
-        return databaseClient.sql(sql)
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql)
                 .bind("delivery_id", delivery.getDeliveryId())
                 .bind("order_id", delivery.getOrderId())
                 .bind("delivery_status", delivery.getDeliveryStatus().name()) // Enum → String
-                .bind("address_line1", delivery.getAddressLine1())
-                .bind("address_line2", delivery.getAddressLine2())
-                .bind("city", delivery.getCity())
+                .bind("address_line1", delivery.getAddressLine1());
+
+        spec = bindNullable(spec, "address_line2", delivery.getAddressLine2());
+
+        return spec.bind("city", delivery.getCity())
                 .bind("state", delivery.getState())
                 .bind("postal_code", delivery.getPostalCode())
                 .bind("created_at", delivery.getCreatedAt())
                 .fetch()
                 .rowsUpdated()
                 .thenReturn(delivery);
+    }
+
+    private DatabaseClient.GenericExecuteSpec bindNullable(DatabaseClient.GenericExecuteSpec spec, String name, String value) {
+        if (value != null) {
+            return spec.bind(name, value);
+        } else {
+            return spec.bindNull(name, String.class);
+        }
     }
 }

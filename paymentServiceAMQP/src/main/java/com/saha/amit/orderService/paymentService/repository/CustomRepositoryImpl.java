@@ -86,22 +86,32 @@ public class CustomRepositoryImpl implements CustomRepository {
                 """;
 
         try {
-            return databaseClient.sql(sql)
+            DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql)
                     .bind("payment_id", payment.getPaymentId())
                     .bind("order_id", payment.getOrderId())
-                    .bind("payment_status", payment.getPaymentStatus()) // Enum → String
+                    .bind("payment_status", payment.getPaymentStatus().name()) // Enum → String
                     .bind("amount", payment.getAmount())
-                    .bind("payment_type", payment.getPaymentType())     // Enum → String
-                    .bind("card_no", payment.getCardNo())
-                    .bind("account_no", payment.getAccountNo())
-                    .bind("upi_id", payment.getUpiId())
-                    .bind("created_at", payment.getCreatedAt())
-                    .fetch()
+                    .bind("payment_type", payment.getPaymentType().name())     // Enum → String
+                    .bind("created_at", payment.getCreatedAt());
+
+            spec = bindNullable(spec, "card_no", payment.getCardNo());
+            spec = bindNullable(spec, "account_no", payment.getAccountNo());
+            spec = bindNullable(spec, "upi_id", payment.getUpiId());
+
+            return spec.fetch()
                     .rowsUpdated()
                     .thenReturn(payment);
         } catch (Exception e) {
             logger.error("Error inserting payment: {}", e.getMessage(), e);
             throw new RuntimeException(e);
+        }
+    }
+
+    private DatabaseClient.GenericExecuteSpec bindNullable(DatabaseClient.GenericExecuteSpec spec, String name, String value) {
+        if (value != null) {
+            return spec.bind(name, value);
+        } else {
+            return spec.bindNull(name, String.class);
         }
     }
 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saga Event Bus Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    
+    <header class="app-header">
+        <div class="logo">
+            <span class="logo-pulse"></span>
+            <h1>Saga Event Bus Dashboard</h1>
+        </div>
+        <div class="status-indicator">
+            <span class="indicator-pulse online"></span>
+            <span>Order Service: Online (Port 8080)</span>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- Left Column: Place Order & Orders List -->
+        <section class="panel-left">
+            <!-- Card 1: Create Order Form -->
+            <div class="glass-card form-card">
+                <h2>⚡ Place Test Order</h2>
+                <form id="order-form">
+                    <div class="form-group">
+                        <label for="customerId">Customer ID</label>
+                        <input type="text" id="customerId" value="cust-777" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerName">Customer Name</label>
+                        <input type="text" id="customerName" value="Amit Saha" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount ($)</label>
+                        <input type="number" id="amount" value="180.00" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="paymentType">Payment Type</label>
+                            <select id="paymentType">
+                                <option value="CARD">Debit/Credit Card</option>
+                                <option value="UPI">UPI Payment</option>
+                                <option value="NET_BANKING">Net Banking</option>
+                                <option value="CASH_ON_DELIVERY">Cash on Delivery (COD)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Conditional Payment Details Fields -->
+                    <div id="payment-details-card" class="form-group payment-conditional">
+                        <label for="cardNo">Card Number</label>
+                        <input type="text" id="cardNo" value="1234-5678-9012-3456">
+                    </div>
+                    <div id="payment-details-upi" class="form-group payment-conditional" style="display: none;">
+                        <label for="upiId">UPI ID</label>
+                        <input type="text" id="upiId" value="amit@upi">
+                    </div>
+                    <div id="payment-details-netbanking" class="form-group payment-conditional" style="display: none;">
+                        <label for="accountNo">Account Number</label>
+                        <input type="text" id="accountNo" value="1234567890">
+                    </div>
+
+                    <h3 class="form-section-title">📍 Shipping Address</h3>
+                    <div class="form-group">
+                        <label for="addressLine1">Address Line 1</label>
+                        <input type="text" id="addressLine1" value="3654 Spencer Street" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addressLine2">Address Line 2 (Optional)</label>
+                        <input type="text" id="addressLine2" value="">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <input type="text" id="city" value="Torrance" required>
+                        </div>
+                    </div>
+                    <div class="form-row grid-2">
+                        <div class="form-group">
+                            <label for="state">State</label>
+                            <input type="text" id="state" value="CA" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="postalCode">Postal Code</label>
+                            <input type="text" id="postalCode" value="90503" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">Dispatch Order Saga</button>
+                </form>
+            </div>
+
+            <!-- Card 2: Orders Stream -->
+            <div class="glass-card list-card">
+                <div class="card-header">
+                    <h2>📦 Recent Orders Stream</h2>
+                    <span class="badge reactive">Reactive SSE</span>
+                </div>
+                <div class="orders-list" id="orders-container">
+                    <div class="empty-state">No orders placed yet. Submit the form above to start.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Visual Timeline & Event logs -->
+        <section class="panel-right">
+            <!-- Card 3: Visual Tracking Timeline -->
+            <div class="glass-card tracker-card">
+                <h2>🔄 Saga Progress Tracker</h2>
+                <div class="selected-order-meta">
+                    <span>Tracking Order ID: </span>
+                    <strong id="active-order-id">None Selected</strong>
+                </div>
+                
+                <!-- Graphic Progress Bar -->
+                <div class="timeline" id="timeline">
+                    <div class="timeline-step" id="step-placed">
+                        <div class="step-icon">📦</div>
+                        <div class="step-info">
+                            <h3>1. Order Ingested</h3>
+                            <p class="step-status">Pending</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step" id="step-payment-created">
+                        <div class="step-icon">⏳</div>
+                        <div class="step-info">
+                            <h3>2. Outbox Logged</h3>
+                            <p class="step-status">Pending</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step" id="step-paid">
+                        <div class="step-icon">💳</div>
+                        <div class="step-info">
+                            <h3>3. Paid</h3>
+                            <p class="step-status">Pending</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step" id="step-shipped">
+                        <div class="step-icon">🚚</div>
+                        <div class="step-info">
+                            <h3>4. Dispatched</h3>
+                            <p class="step-status">Pending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Live Event Log Stream -->
+            <div class="glass-card logs-card">
+                <div class="card-header">
+                    <h2>🔔 Event Bus Live Feed</h2>
+                    <span class="badge stream-active">Streaming...</span>
+                </div>
+                <div class="logs-container" id="logs-container">
+                    <div class="empty-state">Waiting for events from RabbitMQ...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

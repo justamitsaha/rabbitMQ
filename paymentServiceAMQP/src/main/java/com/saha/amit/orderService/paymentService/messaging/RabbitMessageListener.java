@@ -7,6 +7,7 @@ import com.saha.amit.orderService.paymentService.dto.PlaceOrderRequest;
 import com.saha.amit.orderService.paymentService.dto.Status;
 import com.saha.amit.orderService.paymentService.service.PaymentService;
 import com.saha.amit.orderService.paymentService.util.PaymentUtil;
+import com.saha.amit.orderService.paymentService.util.CryptoUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,11 +31,14 @@ public class RabbitMessageListener {
     private final PaymentService paymentService;
     private final PaymentPublisher paymentPublisher;
     private final PaymentUtil paymentUtil;
-    @Value("${app.rabbit.exchange}")
+    @Value("${app.rabbit.exchange:domain.events}")
     private String exchange;
 
+    @Value("${app.security.crypto-key}")
+    private String cryptoKey;
 
-    @RabbitListener(queues = "${app.rabbit.paymentQueue}", containerFactory = "manualAckContainerFactory")
+
+    @RabbitListener(queues = "${app.rabbit.paymentQueue:payment-service-queue}", containerFactory = "manualAckContainerFactory")
     public void handleOrderCreated(Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
@@ -88,6 +92,20 @@ public class RabbitMessageListener {
                             paymentDto.getPaymentId(), error.getMessage(), error))
                     .then(); // convert to Mono<Void>
         } else if (paymentDto.getPaymentStatus() == Status.IN_PROGRESS) {
+            // Decrypt credentials to simulate secure card/bank authorization
+            if (paymentDto.getCardNo() != null) {
+                String dec = CryptoUtil.decrypt(paymentDto.getCardNo(), cryptoKey);
+                logger.info("💳 Simulating card charge. Decrypted card_no = {}", dec);
+            }
+            if (paymentDto.getAccountNo() != null) {
+                String dec = CryptoUtil.decrypt(paymentDto.getAccountNo(), cryptoKey);
+                logger.info("🏦 Simulating bank transfer. Decrypted account_no = {}", dec);
+            }
+            if (paymentDto.getUpiId() != null) {
+                String dec = CryptoUtil.decrypt(paymentDto.getUpiId(), cryptoKey);
+                logger.info("📱 Simulating UPI debit. Decrypted upi_id = {}", dec);
+            }
+
             paymentDto.setPaymentStatus(Status.COMPLETED);
             placeOrderRequest.getPayment().setPaymentStatus(Status.COMPLETED);
             return paymentService.savePayment(paymentDto)
