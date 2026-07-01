@@ -42,7 +42,7 @@ public class NotificationController {
     public void startListening() {
         log.info("🚀 Starting Notification SSE Controller. Listening on 'notification-service-queue'...");
         subscription = receiver.consumeAutoAck("notification-service-queue")
-                .flatMap(delivery -> {
+                .doOnNext(delivery -> {
                     try {
                         String eventType = delivery.getProperties().getType();
                         if (eventType == null) {
@@ -57,7 +57,6 @@ public class NotificationController {
                     } catch (Exception e) {
                         log.error("❌ Error parsing notification event", e);
                     }
-                    return Flux.empty();
                 })
                 .subscribe();
     }

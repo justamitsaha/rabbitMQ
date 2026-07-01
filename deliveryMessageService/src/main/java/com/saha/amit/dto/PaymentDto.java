@@ -12,11 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class PaymentDto {
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String orderId;
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String paymentId;
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Status paymentStatus; // SUCCESS, FAILED, PENDING
     @Schema(description = "Product price", example = "99.99")
     private Double amount;

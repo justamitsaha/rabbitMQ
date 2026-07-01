@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class DeliveryDto {
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String orderId;
     private String deliveryId;
     private Status deliveryStatus;

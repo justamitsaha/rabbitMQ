@@ -91,19 +91,19 @@ Client      reactiveOrderService        RabbitMQ Event Bus       paymentServiceA
 
 The table below outlines the sequential lifecycle of a successful transaction across the microservices, detailing the messaging properties and local actions at each stage:
 
-| Step | Service / Actor | Event / Routing Key | Exchange / Queue | Action Performed | Result / Outcome |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Client** | *None (HTTP POST)* | `POST /orders` | Client submits order, payment, and shipping details. | Request received by Order Service. |
-| **2** | **reactiveOrderService** | `order.created` | Exchange: `domain.events`<br>Queue: `payment-service-queue` | Saves local Order record as `IN_PROGRESS` and publishes created event. | Awaits downstream payment initiation. |
-| **3** | **paymentServiceAMQP** | `order.created` | Queue: `payment-service-queue` | Consumes event, saves local Payment (`IN_PROGRESS`) and Outbox event. | Transaction commits; manual ACK sent. |
-| **4** | **paymentServiceAMQP** (Poller) | `payment.created` | Exchange: `domain.events`<br>Queue: `payment-service-queue` | Outbox Poller queries database (every 2s) and broadcasts the event. | Waits for broker ACK; marks outbox published. |
-| **5** | **paymentServiceAMQP** | `payment.created` | Queue: `payment-service-queue` | Consumes `payment.created` (self-process), updates Payment to `COMPLETED`. | Local payment finalized; prepares success event. |
-| **6** | **paymentServiceAMQP** | `payment.success` | Exchange: `domain.events`<br>Queue: `delivery-service-queue` | Publishes payment success notification; manual ACK sent for step 5 event. | Triggers shipping allocation downstream. |
-| **7** | **deliveryMessageService** | `payment.success` | Queue: `delivery-service-queue` | Consumes payment success; delegates dispatch forwarding. | Initiates reactive forwarding; manual ACK sent. |
-| **8** | **deliveryMessageService** | `delivery.created` | Exchange: `domain.events`<br>Queue: `delivery-service-queue` | Forwards event to exchange to signal delivery creation. | Awaits delivery shipment completion. |
-| **9** | **deliveryMessageService** | `delivery.created` | Queue: `delivery-service-queue` | Consumes `delivery.created` (self-process), updates Delivery to `COMPLETED`. | Local delivery logs finalized; manual ACK sent. |
-| **10** | **deliveryMessageService** | `delivery.success` | Exchange: `domain.events`<br>Queue: `order-service-queue` | Publishes delivery success notification. | Triggers final order closing upstream. |
-| **11** | **reactiveOrderService** | `delivery.success` | Queue: `order-service-queue` | Consumes event and updates order status to `COMPLETED`. | Saga successfully terminates; transaction complete. |
+| Step | Service / Actor | Event / Routing Key | Exchange / Queue | Action Performed | Result / Outcome                                                                                                                   |
+| :--- | :--- | :--- | :--- | :--- |:-----------------------------------------------------------------------------------------------------------------------------------|
+| **1** | **Client** | *None (HTTP POST)* | `POST /orders` | Client submits order, payment, and shipping details. | Request received by Order Service.                                                                                                 |
+| **2** | **reactiveOrderService** | `order.created` | Exchange: `domain.events`<br>Queue: `payment-service-queue` | Saves local Order record as `IN_PROGRESS` and publishes created event. | For key order.created Rabbit MQ routs request to exchange payment-service-queue<br/>Where it Awaits downstream payment initiation. |
+| **3** | **paymentServiceAMQP** | `order.created` | Queue: `payment-service-queue` | Consumes event, saves local Payment (`IN_PROGRESS`) and Outbox event. | Transaction commits; manual ACK sent.                                                                                              |
+| **4** | **paymentServiceAMQP** (Poller) | `payment.created` | Exchange: `domain.events`<br>Queue: `payment-service-queue` | Outbox Poller queries database (every 2s) and broadcasts the event. | Waits for broker ACK; marks outbox published.                                                                                      |
+| **5** | **paymentServiceAMQP** | `payment.created` | Queue: `payment-service-queue` | Consumes `payment.created` (self-process), updates Payment to `COMPLETED`. | Local payment finalized; prepares success event.                                                                                   |
+| **6** | **paymentServiceAMQP** | `payment.success` | Exchange: `domain.events`<br>Queue: `delivery-service-queue` | Publishes payment success notification; manual ACK sent for step 5 event. | Triggers shipping allocation downstream.                                                                                           |
+| **7** | **deliveryMessageService** | `payment.success` | Queue: `delivery-service-queue` | Consumes payment success; delegates dispatch forwarding. | Initiates reactive forwarding; manual ACK sent.                                                                                    |
+| **8** | **deliveryMessageService** | `delivery.created` | Exchange: `domain.events`<br>Queue: `delivery-service-queue` | Forwards event to exchange to signal delivery creation. | Awaits delivery shipment completion.                                                                                               |
+| **9** | **deliveryMessageService** | `delivery.created` | Queue: `delivery-service-queue` | Consumes `delivery.created` (self-process), updates Delivery to `COMPLETED`. | Local delivery logs finalized; manual ACK sent.                                                                                    |
+| **10** | **deliveryMessageService** | `delivery.success` | Exchange: `domain.events`<br>Queue: `order-service-queue` | Publishes delivery success notification. | Triggers final order closing upstream.                                                                                             |
+| **11** | **reactiveOrderService** | `delivery.success` | Queue: `order-service-queue` | Consumes event and updates order status to `COMPLETED`. | Saga successfully terminates; transaction complete.                                                                                |
 
 ---
 

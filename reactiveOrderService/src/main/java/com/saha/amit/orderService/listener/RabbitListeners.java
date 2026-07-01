@@ -15,7 +15,7 @@ import reactor.core.Disposable;
 
 
 
-//@Component
+@Component
 @RequiredArgsConstructor
 public class RabbitListeners {
 
@@ -40,7 +40,9 @@ public class RabbitListeners {
                         JsonNode payload = objectMapper.readTree(body);
                         String orderId = payload.get("orderId").asText();
                         if ("delivery.completed".equals(delivery.getProperties().getType()) ||
-                                "delivery.completed".equals(delivery.getEnvelope().getRoutingKey())) {
+                                "delivery.completed".equals(delivery.getEnvelope().getRoutingKey()) ||
+                                "delivery.success".equals(delivery.getProperties().getType()) ||
+                                "delivery.success".equals(delivery.getEnvelope().getRoutingKey())) {
                             return orderService.updateOrderStatus(orderId, Status.COMPLETED);
                         } else if ("payment.failed".equals(delivery.getProperties().getType()) ||
                                 "payment.failed".equals(delivery.getEnvelope().getRoutingKey())) {

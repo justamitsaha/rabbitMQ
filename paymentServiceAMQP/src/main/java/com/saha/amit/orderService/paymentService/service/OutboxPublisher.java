@@ -25,6 +25,10 @@ public class OutboxPublisher {
     private String exchange;
 
 
+    /**
+     * Periodically queries the database for unpublished outbox events, publishes them 
+     * to the message broker, and marks them as published upon receiving broker ACK confirms.
+     */
     @Scheduled(fixedDelay = 2000) // every 2s
     public void publishUnsentOutBoxEvents() {
         outboxRepository.findByPublishedFalse()

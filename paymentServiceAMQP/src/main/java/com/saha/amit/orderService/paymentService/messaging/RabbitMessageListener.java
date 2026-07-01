@@ -38,6 +38,10 @@ public class RabbitMessageListener {
     private String cryptoKey;
 
 
+    /**
+     * Entry-point listener for all events arriving on the `payment-service-queue`,
+     * coordinating deserialization, processing, and manual broker ACKs.
+     */
     @RabbitListener(queues = "${app.rabbit.paymentQueue:payment-service-queue}", containerFactory = "manualAckContainerFactory")
     public void handleOrderCreated(Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
@@ -75,6 +79,10 @@ public class RabbitMessageListener {
         }
     }
 
+    /**
+     * Routes payment requests based on their lifecycle status (initializing new orders
+     * vs processing active card charges).
+     */
     private Mono<Void> processPayment(PlaceOrderRequest placeOrderRequest) {
         PaymentDto paymentDto = placeOrderRequest.getPayment();
         logger.info("Deserialized message picked from Rabbit MQ: {}, payment status: {}", placeOrderRequest, paymentDto.getPaymentStatus());

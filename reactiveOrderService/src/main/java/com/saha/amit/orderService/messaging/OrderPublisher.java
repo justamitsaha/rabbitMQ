@@ -27,7 +27,7 @@ public class OrderPublisher {
     Logger logger = LoggerFactory.getLogger(OrderPublisher.class);
 
     /**
-     * Publishes a serialized event payload to the specified RabbitMQ exchange and routing key, 
+     * Publishes a serialized event payload to the specified RabbitMQ exchange  `domain.events` and routing key  `order.created`
      * returning a boolean indicating if the broker acknowledged (ACK) receipt.
      */
     public <T> Mono<Boolean> publishEvent(String exchange, String routingKey, T payload, String correlationId) {

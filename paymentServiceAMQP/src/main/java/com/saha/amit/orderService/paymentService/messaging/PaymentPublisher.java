@@ -23,6 +23,10 @@ public class PaymentPublisher {
 
 
 
+    /**
+     * Publishes a payment event to RabbitMQ using the provided exchange and routing key,
+     * returning a Mono containing the broker's publish confirm details.
+     */
     public Mono<CorrelationData.Confirm> publishEvent(String exchange, String routingKey, Object payload, String correlationId) {
         try {
             CorrelationData correlationData = new CorrelationData(correlationId);

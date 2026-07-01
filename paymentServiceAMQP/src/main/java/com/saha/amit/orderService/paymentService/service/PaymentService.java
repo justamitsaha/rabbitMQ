@@ -32,6 +32,10 @@ public class PaymentService {
     private final CustomRepository customRepository;
     private final PaymentUtil paymentUtil;
 
+    /**
+     * Creates a new Payment record in the database and logs a corresponding 
+     * unpublished OutboxEvent for transaction safety.
+     */
     public Mono<Payment> createPayment(String orderId) {
         String paymentId = UUID.randomUUID().toString();
         Payment payment = Payment.builder()
@@ -60,6 +64,10 @@ public class PaymentService {
     }
 
 
+    /**
+     * Saves the initial payment record and its corresponding outbox event in the database
+     * inside a single transactional block to prevent dual-write inconsistencies.
+     */
     @Transactional
     public Mono<OutboxEvent> processInitialOrder(PaymentDto paymentDto, PlaceOrderRequest placeOrderRequest, boolean processed) {
         // Persist payment
@@ -93,6 +101,9 @@ public class PaymentService {
     }
 
 
+    /**
+     * Saves or updates a Payment record directly in the database.
+     */
     public Mono<Payment> savePayment(PaymentDto paymentDto) {
         // Persist payment
         Payment payment = Payment.builder()

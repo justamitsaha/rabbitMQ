@@ -12,11 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class DeliveryDto {
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String orderId;
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String deliveryId;
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Status deliveryStatus;
     @Schema(description = "Location", example = "3654 Spencer street")
     private String addressLine1;

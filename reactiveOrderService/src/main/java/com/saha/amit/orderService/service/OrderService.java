@@ -92,7 +92,7 @@ public class OrderService {
                                                 .then(Mono.error(new RuntimeException("Failed to publish order.created")));
                                     }
                                 })
-                                .doOnNext(order1 -> logger.info("Order published to message broker: {}, with roting key: {}, and data: {}",exchange, placeOrderRoutingKey, order1))
+                                .doOnNext(order1 -> logger.info("Order published to exchange: {}, with roting key: {}, and data: {}",exchange, placeOrderRoutingKey, order1))
                                 .doOnError(err ->
                                         {
                                             logger.error("Error publishing order: {} error details: {}", orderId, err.getMessage());

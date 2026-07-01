@@ -20,7 +20,7 @@ public class DeliveryDto {
     private Status deliveryStatus;
     @Schema(description = "Location", example = "3654 Spencer street")
     private String addressLine1;
-    @Schema(description = "Location", example = "Blue house, near park")
+    @Schema(description = "Location", example = "Apartment 111")
     private String addressLine2;
     @Schema(description = "City", example = "Torrance")
     private String city;
