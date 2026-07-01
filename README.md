@@ -10,7 +10,7 @@ This project is a multi-module Spring Boot application demonstrating event-drive
 *   [paymentServiceAMQP/](paymentServiceAMQP): Payment processing service utilizing traditional Spring AMQP with manual ACKs, R2DBC transactions, and the Transactional Outbox pattern.
 *   [deliveryMessageService/](deliveryMessageService): Lightweight reactive queue listener and publisher acting as a delivery status router.
 *   [doc/](doc): Centralized infrastructure configuration files (Docker Compose, RabbitMQ definitions, MySQL init scripts) and architectural guides.
-    *   👉 **[RabbitMQ Messaging Concepts Guide](doc/rabbitmq_concepts.md)**: Details queues, exchanges, bindings, routing keys, confirms, and retries.
+    *   👉 **[RabbitMQ Messaging Concepts Guide](doc/01_rabbitmq_concepts.md)**: Details queues, exchanges, bindings, routing keys, confirms, and retries.
     *   👉 **[Saga Pattern & Distributed Transactions](doc/saga_pattern.md)**: Compares choreography vs orchestration and maps out our system's Saga flow.
     *   👉 **[The Dual-Write Problem & Solutions](doc/dual_write_solutions.md)**: Details consistency models (ACID vs BASE) and solutions (Outbox, CDC, Saga, 2PC).
     *   👉 **[Transactional Outbox Pattern Comparisons](doc/outbox_pattern_comparison.md)**: Compares polling relays vs CDC, and DBA updates latency patterns.

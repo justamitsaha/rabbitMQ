@@ -100,6 +100,6 @@ To support this polymorphically while maintaining compliance and security, a **H
 ---
 
 ## 🔗 Related Resources
-*   [RabbitMQ Enterprise Concepts Guide](rabbitmq_concepts.md): Details exchange topologies and wildcard routing keys.
+*   [RabbitMQ Enterprise Concepts Guide](01_rabbitmq_concepts.md): Details exchange topologies and wildcard routing keys.
 *   [Saga Choreography Pattern](saga_pattern.md): Illustrates the sequence of events across microservice boundaries.
 *   [Root Project README](../README.md): Operational guide for building and executing the microservices.

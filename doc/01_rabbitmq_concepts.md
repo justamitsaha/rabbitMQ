@@ -13,7 +13,7 @@ RabbitMQ is an asynchronous message broker. Instead of services calling each oth
 ```
 [Producer] ---> [Exchange] --(Routing Key)--> [Queue] ---> [Consumer]
 ```
-
+*   **Broker**: The RabbitMQ server that manages exchanges, queues, and message routing.
 *   **Producer**: The application service that creates and sends messages.
 *   **Consumer**: The application service that listens to a queue and processes messages.
 *   **Exchange**: The message router. It receives messages from producers and determines how to route them to queues based on configuration rules.
@@ -26,19 +26,52 @@ RabbitMQ is an asynchronous message broker. Instead of services calling each oth
 
 ## 🔀 Exchange Types & Routing Rules
 
-Exchanges route messages differently depending on their type. Here is a comparative matrix of the three primary exchange types:
+Exchanges route messages differently depending on their type. Below are the primary exchange types and how they handle routing:
 
-| Property | Topic Exchange | Direct Exchange | Fanout Exchange |
-| :--- | :--- | :--- | :--- |
-| **Routing Logic** | Routes based on wildcard pattern matching on dot-separated routing key tokens. | Routes based on an exact matching of the routing key. | Ignores routing keys and broadcasts messages to all bound queues. |
-| **Matching Rules** | `*` matches exactly 1 word.<br>`#` matches 0 or more words. | Exact string match (no wildcards). | Broadcast to all (no key matching). |
-| **Project Context & Examples** | **Core Routing**: The exchange `domain.events` configured in [rabbitmq_definitions.json](./rabbitmq/rabbitmq_definitions.json) dynamically routes keys like `order.created` or `payment.success` to service queues. | **Example**: If a queue binds to exchange `payment.direct` with key `payment.failed`, only exact matching messages will route there. | **DLX Broadcast**: The dead letter exchange `domain.dlx` configured in [rabbitmq_definitions.json](./rabbitmq/rabbitmq_definitions.json) broadcasts failed messages to all bound DLQ queues. |
-| **Visual Flow Diagram** | ![RabbitMQ Topic Exchange](./img/topic_exchange.jpg) | ![RabbitMQ Direct Exchange](./img/direct_exchange.jpg) | ![RabbitMQ Fanout Exchange](./img/fanout_exchange.jpg) |
+### 1. Topic Exchange
+Topic exchanges route messages by matching the message's routing key against a wildcard pattern defined in the binding key. The routing key must be a list of words delimited by dots (e.g., `payment.success.us`). The binding key pattern uses two special wildcard symbols:
+*   **Asterisk (`*`)**: Matches **exactly one** word. For example, `order.*` matches `order.created` and `order.failed`, but not `order.created.us` or `order`.
+*   **Hash (`#`)**: Matches **zero or more** words. For example, `order.#` matches `order.created`, `order.created.us`, and `order`.
+
+**Project Reference**: The main exchange `domain.events` configured in [rabbitmq_definitions.json](./rabbitmq/rabbitmq_definitions.json) is a topic exchange. It dynamically routes keys like `order.created` or `payment.success` to service queues.
+
+<img src="./img/topic_exchange.gif" alt="RabbitMQ Topic Exchange" width="750" />
+
+### 2. Direct Exchange
+Direct exchanges route messages based on an **exact match** between the message's routing key and the binding key defined on the queue. There are no wildcards or pattern matching.
+*   *Example*: If a queue binds to a direct exchange with a binding key of `payment.failed`, only messages published with the exact routing key `payment.failed` will be routed to that queue.
+
+<img src="./img/direct_exchange.gif" alt="RabbitMQ Direct Exchange" width="750" />
+
+### 3. Fanout Exchange
+Fanout exchanges ignore routing keys entirely. When a message is published to a fanout exchange, it is instantly broadcast to all queues bound to it.
+*   **Project Reference**: The dead letter exchange `domain.dlx` configured in [rabbitmq_definitions.json](./rabbitmq/rabbitmq_definitions.json) is a fanout exchange. It broadcasts failed messages to all bound DLQ queues.
+
+<img src="./img/fanout_exchange.gif" alt="RabbitMQ Fanout Exchange" width="750" />
 
 ### 4. Headers Exchange
 *(Note: A 4th, less common type not implemented in this project)*
 Routes messages based on key-value pairs in the message headers instead of the routing key. Bindings specify headers to match, and can require matching all (`x-match: all`) or any (`x-match: any`) headers.
 *   *Example*: A queue binds to a headers exchange requiring headers `format: pdf` and `type: invoice`. A message with these headers is routed to the queue regardless of the routing key.
+    <img src="./img/header_exchange.gif" alt="RabbitMQ Headers Exchange" width="550" />
+
+
+### 5. Default Exchange
+   This type of exchange is the default one. Instead of a binding key, this type uses the names of the queue to compare with the routing key to pass on the messages.
+
+Example:
+
+Press enter or click to view image in full size
+
+<img src="./img/default_exchange.gif" alt="RabbitMQ Default Exchange" width="750" />
+
+Default Exchange
+
+In this example,
+
+-   There are three queues with the names ‘Technology’, ‘Arts’ and ‘Writing’ respectively.
+-   The message sent by the provider has the routing key ‘Writing’ which matches the 3rd queue’s name.
+-   So, the message is sent to the Writing queue.
 
 ---
 
