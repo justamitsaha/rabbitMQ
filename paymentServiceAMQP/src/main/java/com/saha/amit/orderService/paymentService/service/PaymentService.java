@@ -137,5 +137,12 @@ public class PaymentService {
                 .build();
         return customRepository.insertToPayment(payment);
     }
+
+    /**
+     * Retrieves the Payment record for a specific order ID.
+     */
+    public Mono<Payment> getPaymentByOrderId(String orderId) {
+        return paymentRepository.findByOrderId(orderId);
+    }
 }
 

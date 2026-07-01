@@ -114,9 +114,24 @@
             <!-- Card 3: Visual Tracking Timeline -->
             <div class="glass-card tracker-card">
                 <h2>🔄 Saga Progress Tracker  (Database State)</h2>
-                <div class="selected-order-meta">
-                    <span>Tracking Order ID: </span>
-                    <strong id="active-order-id">None Selected</strong>
+                <div class="selected-order-meta" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                        <span>Tracking Order ID: </span>
+                        <strong id="active-order-id">None Selected</strong>
+                    </div>
+                    <div class="orchestrator-actions" style="display: flex; gap: 8px;">
+                        <input type="text" id="query-order-id" placeholder="Enter Order ID manually..." style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-family: monospace; font-size: 12px;">
+                        <button id="btn-fetch-details" class="btn-submit" style="margin: 0; padding: 6px 12px; font-size: 12px; width: auto;">Orchestrate Query</button>
+                    </div>
+                </div>
+
+                <!-- Orchestrator JSON Results -->
+                <div id="orchestrator-result-box" style="display: none; margin: 15px 0; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="margin: 0 0 8px 0; color: var(--accent-cyan); font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>🔌 Inter-Service Orchestrator Response</span>
+                        <button id="btn-close-orchestrator" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
+                    </h4>
+                    <pre id="orchestrator-json" style="margin: 0; font-size: 11px; max-height: 250px; overflow-y: auto; text-align: left; white-space: pre-wrap; word-break: break-all; color: #a6e22e; font-family: monospace;"></pre>
                 </div>
                 
                 <!-- Graphic Progress Bar -->

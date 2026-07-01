@@ -3,6 +3,10 @@ package com.saha.amit.orderService.service;
 import com.saha.amit.orderService.domain.Order;
 import com.saha.amit.orderService.dto.PlaceOrderRequest;
 import com.saha.amit.orderService.dto.Status;
+import com.saha.amit.orderService.dto.OrderDetailsDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.web.reactive.function.client.WebClient;
+import java.util.Optional;
 import com.saha.amit.orderService.messaging.OrderPublisher;
 import com.saha.amit.orderService.repository.CustomOrderRepository;
 import com.saha.amit.orderService.repository.OrderRepository;
@@ -28,6 +32,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderPublisher orderPublisher;
     private final CustomOrderRepository customOrderRepository;
+    private final WebClient webClient = WebClient.builder().build();
 
     @Value("${app.rabbit.exchange:domain.events}")
     private String exchange;
@@ -120,6 +125,46 @@ public class OrderService {
                     o.setOrderStatus(status);
                     logger.info("Updating order status to {} for order{}", status, o);
                     return orderRepository.save(o);
+                });
+    }
+
+    /**
+     * Orchestrates REST calls to Payment and Delivery services to build a combined OrderDetailsDto.
+     */
+    public Mono<OrderDetailsDto> getOrderDetails(String orderId) {
+        return orderRepository.findById(orderId)
+                .flatMap(order -> {
+                    // Call Payment Service
+                    Mono<Optional<JsonNode>> paymentMono = webClient.get()
+                            .uri("http://localhost:8081/payments/order/" + orderId)
+                            .retrieve()
+                            .bodyToMono(JsonNode.class)
+                            .map(Optional::of)
+                            .onErrorResume(e -> {
+                                logger.warn("⚠️ Could not fetch payment details for orderId={}: {}", orderId, e.getMessage());
+                                return Mono.just(Optional.empty());
+                            })
+                            .defaultIfEmpty(Optional.empty());
+
+                    // Call Delivery Service
+                    Mono<Optional<JsonNode>> deliveryMono = webClient.get()
+                            .uri("http://localhost:8082/deliveries/order/" + orderId)
+                            .retrieve()
+                            .bodyToMono(JsonNode.class)
+                            .map(Optional::of)
+                            .onErrorResume(e -> {
+                                logger.warn("⚠️ Could not fetch delivery details for orderId={}: {}", orderId, e.getMessage());
+                                return Mono.just(Optional.empty());
+                            })
+                            .defaultIfEmpty(Optional.empty());
+
+                    // Combine results
+                    return Mono.zip(Mono.just(order), paymentMono, deliveryMono)
+                            .map(tuple -> OrderDetailsDto.builder()
+                                    .order(tuple.getT1())
+                                    .payment(tuple.getT2().orElse(null))
+                                    .delivery(tuple.getT3().orElse(null))
+                                    .build());
                 });
     }
 }

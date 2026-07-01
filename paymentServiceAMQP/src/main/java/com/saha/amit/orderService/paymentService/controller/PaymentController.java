@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
@@ -16,5 +17,10 @@ public class PaymentController {
     @PostMapping("/{orderId}")
     public Mono<Payment> createPayment(@PathVariable String orderId) {
         return paymentService.createPayment(orderId);
+    }
+
+    @GetMapping("/order/{orderId}")
+    public Mono<Payment> getPaymentByOrderId(@PathVariable String orderId) {
+        return paymentService.getPaymentByOrderId(orderId);
     }
 }

@@ -2,6 +2,7 @@ package com.saha.amit.orderService.controller;
 
 import com.saha.amit.orderService.domain.Order;
 import com.saha.amit.orderService.dto.PlaceOrderRequest;
+import com.saha.amit.orderService.dto.OrderDetailsDto;
 import com.saha.amit.orderService.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -46,6 +47,17 @@ public class OrderController {
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Order> findAllOrders() {
         return this.orderService.findAllOrders();
+    }
+
+    /**
+     * REST endpoint to orchestrate calls and retrieve combined Order details, Payment details, and Delivery details.
+     */
+    @GetMapping("/{orderId}/details")
+    public Mono<ResponseEntity<OrderDetailsDto>> getOrderDetails(@PathVariable String orderId) {
+        logger.info("Received request to fetch combined details for orderId: {}", orderId);
+        return orderService.getOrderDetails(orderId)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 }
 

@@ -168,6 +168,11 @@ function selectOrderForTracking(orderId) {
     activeTrackingOrderId = orderId;
     activeOrderIdLabel.innerText = orderId;
     
+    const queryInput = document.getElementById('query-order-id');
+    if (queryInput) {
+        queryInput.value = orderId;
+    }
+    
     // Highlight selected item in list
     document.querySelectorAll('.order-item').forEach(el => el.classList.remove('active-tracking'));
     renderOrdersList();
@@ -289,3 +294,43 @@ function addLogEntry(eventType, text) {
     // Auto-scroll to bottom of logs
     logsContainer.scrollTop = logsContainer.scrollHeight;
 }
+
+// --- 5. Inter-Service Orchestrator Query Handlers ---
+document.getElementById('btn-fetch-details').addEventListener('click', function () {
+    const orderId = document.getElementById('query-order-id').value.trim();
+    if (!orderId) {
+        alert("Please enter or select an Order ID first!");
+        return;
+    }
+    
+    addLogEntry('client.request', `🔌 Requesting combined details for Order ID: ${orderId}...`);
+    
+    fetch(`${ORDER_SERVICE_API}/orders/${orderId}/details`)
+        .then(res => {
+            if (res.status === 404) {
+                throw new Error("Order ID not found in Order Service database.");
+            }
+            if (!res.ok) {
+                throw new Error("Failed to orchestrate/fetch details from backend.");
+            }
+            return res.json();
+        })
+        .then(data => {
+            addLogEntry('client.response', `✅ Successfully orchestrated details for Order ID: ${orderId}`);
+            
+            // Format and display JSON payload
+            const jsonBox = document.getElementById('orchestrator-result-box');
+            const pre = document.getElementById('orchestrator-json');
+            
+            pre.innerText = JSON.stringify(data, null, 4);
+            jsonBox.style.display = 'block';
+        })
+        .catch(err => {
+            addLogEntry('client.error', `❌ Orchestration Query failed: ${err.message}`);
+            alert(err.message);
+        });
+});
+
+document.getElementById('btn-close-orchestrator').addEventListener('click', function () {
+    document.getElementById('orchestrator-result-box').style.display = 'none';
+});
