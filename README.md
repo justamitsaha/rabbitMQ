@@ -84,8 +84,8 @@ Client      reactiveOrderService        RabbitMQ Event Bus       paymentServiceA
 ```
 
 *   **Compensating Transactions (Rollback Paths)**:
-    *   If payment fails, `paymentServiceAMQP` updates status to `FAILED` and publishes `payment.failure`. The `reactiveOrderService` consumes it and cancels the order (status: `FAILED`).
-    *   If delivery fails, `deliveryMessageService` publishes `delivery.failure`. The `reactiveOrderService` marks the order `FAILED`, and the `paymentServiceAMQP` performs a refund (status: `REFUND`).
+    *   If payment fails (e.g. payment type is `CASH_ON_DELIVERY`), `paymentServiceAMQP` updates status to `FAILED` and publishes `payment.failure`. The `reactiveOrderService` consumes it and cancels the order (status: `FAILED`).
+    *   If delivery fails (e.g. delivery zipcode is `75034`), `deliveryMessageService` publishes `delivery.failure`. The `reactiveOrderService` updates status to `FAILED`, and the `paymentServiceAMQP` compensates and reverts the payment status to `FAILED`.
 
 ### 📋 Saga Event Sequence Matrix
 
@@ -135,6 +135,8 @@ Publishers                    Exchange: domain.events                    Queues 
 [Payment Service]  ------>  ( Routing Key: payment.failure ) ----+-> [order-service-queue]   ----> [Order Service]
                                                                  |
 [Delivery Service] ------>  ( Routing Key: delivery.failure ) ---+
+                                                                 |
+                                                                 +-> [payment-service-queue] ----> [Payment Service] (Revert)
 
 -----------------------------------------------------------------------------------------------------------------
 
@@ -156,6 +158,7 @@ Publishers                    Exchange: domain.events                    Queues 
     *   `POST /orders`: Places a new order.
     *   `GET /orders`: Stream of order entity states (SSE).
     *   `GET /notifications`: Streams all RabbitMQ event bus messages (SSE) captured via the wildcard (`#`) queue.
+    *   `GET /orders/{orderId}/details`: Orchestrated REST query resolving combined Order, Payment, and Delivery details.
 *   **Database Interactions**:
     *   `orders` table: Writes order details with status `IN_PROGRESS` on order placement, and reads/updates status to `COMPLETED`/`FAILED` upon receiving downstream events.
 *   **RabbitMQ Interactions**:
@@ -165,6 +168,8 @@ Publishers                    Exchange: domain.events                    Queues 
 
 ### 2. `paymentServiceAMQP`
 *   **Purpose**: Processes order payments. Implements the Transactional Outbox pattern to guarantee message delivery, and uses manual RabbitMQ acknowledgments for message handling.
+*   **Exposed REST Endpoints**:
+    *   `GET /payments/order/{orderId}`: Retrieves payment details by order ID.
 *   **Database Interactions**:
     *   `payments` table: Records payment details and updates status from `IN_PROGRESS` to `COMPLETED` during transaction authorization.
     *   `outbox_payment` table: Inserts unpublished outbox events atomically within the local payment transaction, and updates `published = true` once broker ACK is received.
@@ -177,6 +182,8 @@ Publishers                    Exchange: domain.events                    Queues 
 
 ### 3. `deliveryMessageService`
 *   **Purpose**: Simulates a delivery gateway proxy, acting as an event-forwarding agent that reads from the delivery queue and publishes dispatches.
+*   **Exposed REST Endpoints**:
+    *   `GET /deliveries/order/{orderId}`: Retrieves delivery details by order ID.
 *   **Database Interactions**:
     *   `delivery` table: Maps the delivery schema (persists delivery status details).
 *   **RabbitMQ Interactions**:

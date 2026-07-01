@@ -42,11 +42,10 @@ RabbitMQ           RabbitMessageListener         PaymentService          MySQL (
 ```
 
 1.  **Consume `order.created`**: The [RabbitMessageListener.java](src/main/java/com/saha/amit/orderService/paymentService/messaging/RabbitMessageListener.java) consumes the event.
-2.  **Verify State**: It detects that `paymentStatus` is null (indicating a new order).
-3.  **ACID Transaction**: It initiates `paymentService.processInitialOrder()` which executes both DB inserts atomically:
-    *   Inserts a record in the `payments` table with status `IN_PROGRESS`.
-    *   Inserts a record in the `outbox_payment` table containing the payload for the `payment.created` event, with `published = false`.
-4.  **Acknowledge Broker**: Only after the database transaction successfully commits, the listener invokes `channel.basicAck()` to acknowledge the message. If the DB write fails, it calls `basicNack()` to route the message to the DLQ.
+2.  **Verify State & Type**: It detects that `paymentStatus` is null (indicating a new order). It also checks the `paymentType`:
+    *   **Normal Flow (CARD, UPI, NET_BANKING)**: Initiates `paymentService.processInitialOrder()` which executes both DB inserts atomically inside a local database transaction (inserts payment as `IN_PROGRESS` and writes to outbox).
+    *   **COD Immediate Failure Flow**: If the type is `CASH_ON_DELIVERY`, it bypasses the transaction, saves the payment directly as `FAILED` using `paymentService.insertPayment(...)`, and publishes `payment.failure` to the event bus.
+3.  **Acknowledge Broker**: Only after the database operations successfully complete, the listener invokes `channel.basicAck()` to acknowledge the message. If the DB write fails, it calls `basicNack()` to route the message to the DLQ.
 
 ---
 
@@ -100,8 +99,8 @@ RabbitMQ           RabbitMessageListener         PaymentService         PaymentP
 ---
 
 ### Part 4: Downstream Refund Compensation
-*   **Trigger**: If delivery fails downstream, `deliveryMessageService` emits `delivery.failure`.
-*   **Flow**: The listener detects `delivery.failure`, calls refund logic in the service (which updates the database state to `REFUND`), and then issues a manual ACK.
+*   **Trigger**: If delivery fails downstream (e.g. delivery zipcode is `75034`), `deliveryMessageService` emits `delivery.failure`.
+*   **Flow**: The listener detects `delivery.failure`, calls the compensation logic `revertPayment(...)` in the service (which updates the database payment record status to `FAILED`), and then issues a manual ACK.
 
 ---
 

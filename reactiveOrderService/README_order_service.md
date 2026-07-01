@@ -87,11 +87,11 @@ This flow runs in the background. It listens to downstream service responses on 
     *   **Delivery Completed (`delivery.completed` / `delivery.success`)**:
         *   *Meaning*: Downstream payment and shipping succeeded.
         *   *Action*: Calls `orderService.updateOrderStatus(orderId, Status.COMPLETED)` to mark the order final.
-    *   **Payment Failed (`payment.failed`)**:
-        *   *Meaning*: Card was declined, bank transaction failed, etc.
+    *   **Payment Failed (`payment.failed` / `payment.failure`)**:
+        *   *Meaning*: Card was declined, bank transaction failed, or user requested Cash on Delivery (COD).
         *   *Action*: Triggers compensation. Calls `orderService.updateOrderStatus(orderId, Status.FAILED)`.
-    *   **Delivery Failed (`delivery.failure`)**:
-        *   *Meaning*: Package couldn't be dispatched or inventory was insufficient.
+    *   **Delivery Failed (`delivery.failed` / `delivery.failure`)**:
+        *   *Meaning*: Package couldn't be dispatched, inventory was insufficient, or delivery zipcode was 75034.
         *   *Action*: Triggers compensation. Calls `orderService.updateOrderStatus(orderId, Status.FAILED)`.
 
 ---
@@ -100,7 +100,7 @@ This flow runs in the background. It listens to downstream service responses on 
 
 Exposes a streaming Server-Sent Events (SSE) feed of all actions occurring on the RabbitMQ event bus:
 
-1.  **Background Wildcard listener**: On startup, [NotificationController.java](src/main/java/com/saha/amit/orderService/notification/NotificationController.java) consumes the `notification-service-queue` bound to the `#` wildcard.
+1.  **Background Wildcard listener**: On startup, [NotificationController.java](src/main/java/com/saha/amit/orderService/controller/NotificationController.java) consumes the `notification-service-queue` bound to the `#` wildcard.
 2.  **Multicast Broadcast**: It extracts the event type and JSON payload and broadcasts it immediately to a shared, active multicast Sink.
 3.  **SSE Streaming**: Clients invoking `GET /notifications` receive a real-time, non-blocking SSE stream (mime-type: `text/event-stream`) directly from this Sink.
 
@@ -142,4 +142,33 @@ data:{"event":"payment.created", "payload":{...}}
 data:{"event":"payment.success", "payload":{...}}
 data:{"event":"delivery.created", "payload":{...}}
 data:{"event":"delivery.success", "payload":{...}}
+```
+
+### 4. Query Orchestration Details
+Verify the REST Orchestrator combines state from all three microservices. Run a GET query with the `orderId` generated in Step 2:
+```bash
+curl http://localhost:8080/orders/{orderId}/details
+```
+It returns the structured combined JSON response containing the Order database row, the Payment database row (from `paymentServiceAMQP`), and the Delivery database row (from `deliveryMessageService`):
+```json
+{
+    "order": {
+        "orderId": "...",
+        "customerId": "cust-303",
+        "orderStatus": "COMPLETED",
+        ...
+    },
+    "payment": {
+        "paymentId": "...",
+        "paymentStatus": "COMPLETED",
+        "amount": 120.0,
+        ...
+    },
+    "delivery": {
+        "deliveryId": "...",
+        "deliveryStatus": "SUCCESS",
+        "postalCode": "02111",
+        ...
+    }
+}
 ```

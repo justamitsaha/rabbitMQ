@@ -49,7 +49,7 @@ order.created [Order Service]
      │       │   └─ order.COMPLETED [Order Service]
      │       └─ delivery.failure [Delivery Service]
      │           ├─ order.FAILED [Order Service]
-     │           └─ refund.completed [Payment Service] (Compensating)
+     │           └─ payment.reverted [Payment Service] (Compensating)
      └─ payment.failure [Payment Service]
          └─ order.FAILED [Order Service] (Compensating)
 ```
@@ -75,10 +75,10 @@ order.created [Order Service]
     *   **Failure**: Delivery status is updated to `FAILED` and `delivery.failure` is published.
 
 ### 4. Compensation / Failure Rollbacks
-*   **Payment Failure**: If `payment.failure` is published, the Order Service consumes it and executes a compensating transaction updating order status to `FAILED`.
-*   **Delivery Failure**: If `delivery.failure` is published:
+*   **Payment Failure**: If `payment.failure` is published (e.g. payment type is `CASH_ON_DELIVERY`), the Order Service consumes it and executes a compensating transaction updating order status to `FAILED`.
+*   **Delivery Failure**: If `delivery.failure` is published (e.g. delivery zipcode is `75034`):
     *   **Order Service**: Consumes it and updates order status to `FAILED`.
-    *   **Payment Service**: Consumes it, initiates refund logic, and updates status to `REFUND`.
+    *   **Payment Service**: Consumes it, initiates compensation logic, and updates status to `FAILED` (reverted).
 
 ---
 
