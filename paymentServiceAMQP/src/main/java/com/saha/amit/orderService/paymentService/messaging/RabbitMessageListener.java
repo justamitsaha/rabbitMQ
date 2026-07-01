@@ -2,6 +2,7 @@ package com.saha.amit.orderService.paymentService.messaging;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.saha.amit.orderService.paymentService.dto.PaymentType;
 import com.saha.amit.orderService.paymentService.dto.PaymentDto;
 import com.saha.amit.orderService.paymentService.dto.PlaceOrderRequest;
 import com.saha.amit.orderService.paymentService.dto.Status;
@@ -45,13 +46,19 @@ public class RabbitMessageListener {
     @RabbitListener(queues = "${app.rabbit.paymentQueue:payment-service-queue}", containerFactory = "manualAckContainerFactory")
     public void handleOrderCreated(Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        String receivedRoutingKey = message.getMessageProperties().getReceivedRoutingKey();
         try {
             // 1. Deserialize order
             PlaceOrderRequest placeOrderRequest = objectMapper.readValue(message.getBody(), PlaceOrderRequest.class);
-            // 3. Ack only after success this tells RabbitMQ we have processed this message
-            // If we comment this line message will be read again after consumer restart
-            // We will need to restart the consumer application to see the message being processed again
-            processPayment(placeOrderRequest)
+            
+            Mono<Void> processMono;
+            if ("delivery.failure".equals(receivedRoutingKey)) {
+                processMono = revertPayment(placeOrderRequest);
+            } else {
+                processMono = processPayment(placeOrderRequest);
+            }
+
+            processMono
                     .doOnSuccess(result -> {
                         // Ack only if the pipeline succeeded
                         try {
@@ -59,11 +66,11 @@ public class RabbitMessageListener {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-                        logger.info("✅ Acknowledged message for orderId={}", placeOrderRequest.getOrderId());
+                        logger.info("✅ Acknowledged message (routingKey={}) for orderId={}", receivedRoutingKey, placeOrderRequest.getOrderId());
                     })
                     .doOnError(err -> {
-                        logger.error("❌ Failed processing message for orderId={}, error={}",
-                                placeOrderRequest.getOrderId(), err.getMessage(), err);
+                        logger.error("❌ Failed processing message (routingKey={}) for orderId={}, error={}",
+                                receivedRoutingKey, placeOrderRequest.getOrderId(), err.getMessage(), err);
                         try {
                             channel.basicNack(deliveryTag, false, false); // send to DLQ
                         } catch (IOException ioException) {
@@ -87,8 +94,23 @@ public class RabbitMessageListener {
         PaymentDto paymentDto = placeOrderRequest.getPayment();
         logger.info("Deserialized message picked from Rabbit MQ: {}, payment status: {}", placeOrderRequest, paymentDto.getPaymentStatus());
 
-
         if (null == paymentDto.getPaymentStatus()) {
+            if (paymentDto.getPaymentType() == PaymentType.CASH_ON_DELIVERY) {
+                logger.warn("❌ Payment failed immediately because payment method is CASH_ON_DELIVERY (COD) for orderId={}", placeOrderRequest.getOrderId());
+                String uuid = UUID.randomUUID().toString();
+                paymentDto.setPaymentStatus(Status.FAILED);
+                paymentDto.setPaymentId(uuid);
+                placeOrderRequest.setPayment(paymentDto);
+
+                return paymentService.insertPayment(paymentDto)
+                        .flatMap(saved -> paymentPublisher.publishEvent(
+                                exchange,
+                                "payment.failure",
+                                paymentUtil.toJson(placeOrderRequest),
+                                placeOrderRequest.getOrderId()))
+                        .then();
+            }
+
             // 2. Save payment + outbox in one transaction
             // Making payment status IN_PROGRESS as it will be persisted in Outbox table and picked and published by OutboxPublisher
             String uuid = UUID.randomUUID().toString();
@@ -129,6 +151,23 @@ public class RabbitMessageListener {
         }
 
         return Mono.empty(); // no-op
+    }
+
+    /**
+     * Compensates/reverts payment when delivery fails.
+     */
+    private Mono<Void> revertPayment(PlaceOrderRequest placeOrderRequest) {
+        PaymentDto paymentDto = placeOrderRequest.getPayment();
+        if (paymentDto == null) {
+            logger.warn("⚠️ No payment details found in delivery.failure event, cannot revert");
+            return Mono.empty();
+        }
+
+        logger.warn("🔄 Reverting payment for orderId={} due to delivery failure...", placeOrderRequest.getOrderId());
+        paymentDto.setPaymentStatus(Status.FAILED);
+        return paymentService.savePayment(paymentDto)
+                .doOnNext(saved -> logger.info("💾 Updated payment status to FAILED in database: {}", saved))
+                .then();
     }
 }
 

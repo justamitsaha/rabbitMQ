@@ -34,18 +34,27 @@ public class RabbitListeners {
         // Listen to the order-service-queue
         subscription = receiver.consumeAutoAck("order-service-queue")
                 .flatMap(delivery -> {
-                    String routingKey = delivery.getProperties().getType(); // or delivery.getEnvelope().getRoutingKey()
+                    String receivedKey = delivery.getEnvelope().getRoutingKey();
+                    String typeProp = delivery.getProperties().getType();
                     byte[] body = delivery.getBody();
                     try {
                         JsonNode payload = objectMapper.readTree(body);
                         String orderId = payload.get("orderId").asText();
-                        if ("delivery.completed".equals(delivery.getProperties().getType()) ||
-                                "delivery.completed".equals(delivery.getEnvelope().getRoutingKey()) ||
-                                "delivery.success".equals(delivery.getProperties().getType()) ||
-                                "delivery.success".equals(delivery.getEnvelope().getRoutingKey())) {
+
+                        if ("delivery.completed".equals(typeProp) ||
+                                "delivery.completed".equals(receivedKey) ||
+                                "delivery.success".equals(typeProp) ||
+                                "delivery.success".equals(receivedKey)) {
                             return orderService.updateOrderStatus(orderId, Status.COMPLETED);
-                        } else if ("payment.failed".equals(delivery.getProperties().getType()) ||
-                                "payment.failed".equals(delivery.getEnvelope().getRoutingKey())) {
+                        } else if ("payment.failed".equals(typeProp) ||
+                                "payment.failed".equals(receivedKey) ||
+                                "payment.failure".equals(typeProp) ||
+                                "payment.failure".equals(receivedKey) ||
+                                "delivery.failed".equals(typeProp) ||
+                                "delivery.failed".equals(receivedKey) ||
+                                "delivery.failure".equals(typeProp) ||
+                                "delivery.failure".equals(receivedKey)) {
+                            logger.warn("❌ Saga failed for orderId={}, marking order status as FAILED", orderId);
                             return orderService.updateOrderStatus(orderId, Status.FAILED);
                         }
                     } catch (Exception e) {

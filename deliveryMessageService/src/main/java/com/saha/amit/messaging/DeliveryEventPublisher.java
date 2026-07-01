@@ -23,10 +23,10 @@ public class DeliveryEventPublisher {
     private String routingKey;
 
     /**
-     * Publishes raw JSON payload to domain.events exchange with routing key delivery.created
+     * Publishes raw JSON payload to domain.events exchange with the specified routing key.
      * Uses publisher confirms for reliability.
      */
-    public Mono<Void> publish(byte[] payload) {
+    public Mono<Void> publish(String routingKey, byte[] payload) {
         OutboundMessage message = new OutboundMessage(targetExchange, routingKey, payload);
 
         return senderMono.flatMapMany(sender ->

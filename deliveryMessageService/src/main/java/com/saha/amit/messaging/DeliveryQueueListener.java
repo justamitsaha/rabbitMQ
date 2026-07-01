@@ -44,27 +44,41 @@ public class DeliveryQueueListener {
                         
                         // 2. Build Delivery entity
                         String deliveryId = UUID.randomUUID().toString();
+                        String postalCode = request.getDelivery().getPostalCode();
+                        Status deliveryStatus = Status.SUCCESS;
+                        String targetRoutingKey = "delivery.success";
+                        
+                        if ("75034".equals(postalCode)) {
+                            deliveryStatus = Status.FAILED;
+                            targetRoutingKey = "delivery.failure";
+                            log.warn("❌ Delivery failed for orderId={} because zip code is 75034", request.getOrderId());
+                        }
+
                         Delivery delivery = Delivery.builder()
                                 .deliveryId(deliveryId)
                                 .orderId(request.getOrderId())
-                                .deliveryStatus(Status.SUCCESS)
+                                .deliveryStatus(deliveryStatus)
                                 .addressLine1(request.getDelivery().getAddressLine1())
                                 .addressLine2(request.getDelivery().getAddressLine2())
                                 .city(request.getDelivery().getCity())
                                 .state(request.getDelivery().getState())
-                                .postalCode(request.getDelivery().getPostalCode())
+                                .postalCode(postalCode)
                                 .createdAt(Instant.now())
                                 .build();
 
-                        log.info("🚚 Simulating package shipping dispatch for orderId={} to {}...", 
-                                 request.getOrderId(), delivery.getCity());
+                        if (deliveryStatus == Status.SUCCESS) {
+                            log.info("🚚 Simulating package shipping dispatch for orderId={} to {}...", 
+                                     request.getOrderId(), delivery.getCity());
+                        }
 
-                        // 3. Save Delivery and then publish success event
+                        final String finalRoutingKey = targetRoutingKey;
+
+                        // 3. Save Delivery and then publish event
                         return customDeliveryRepository.insert(delivery)
-                                .then(publisher.publish(msg.getBody()))
+                                .then(publisher.publish(finalRoutingKey, msg.getBody()))
                                 .then(Mono.fromRunnable(() -> {
                                     msg.ack(); // Ack only after successful DB save & publish
-                                    log.info("✅ Message processed and acked: {}", request.getOrderId());
+                                    log.info("✅ Message processed and acked: {}, routingKey={}", request.getOrderId(), finalRoutingKey);
                                 }))
                                 .onErrorResume(ex -> {
                                     msg.nack(false, false); // reject and send to DLQ

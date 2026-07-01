@@ -119,5 +119,23 @@ public class PaymentService {
                 .build();
         return paymentRepository.save(payment);
     }
+
+    /**
+     * Inserts a new Payment record in the database using raw SQL insert.
+     */
+    public Mono<Payment> insertPayment(PaymentDto paymentDto) {
+        Payment payment = Payment.builder()
+                .paymentId(paymentDto.getPaymentId())
+                .orderId(paymentDto.getOrderId())
+                .paymentStatus(paymentDto.getPaymentStatus())
+                .amount(paymentDto.getAmount())
+                .paymentType(paymentDto.getPaymentType())
+                .cardNo(paymentDto.getCardNo())
+                .accountNo(paymentDto.getAccountNo())
+                .upiId(paymentDto.getUpiId())
+                .createdAt(Instant.now())
+                .build();
+        return customRepository.insertToPayment(payment);
+    }
 }
 
